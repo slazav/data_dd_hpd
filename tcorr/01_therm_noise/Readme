@@ -1,0 +1,8 @@
+Smooth fits of noise thermometry data for all cooldowns.
+
+get_data -- script for getting data from the database
+
+fit_temp.m -- matlab script reads thermometry file and file with kinks,
+  makes piecewise fit.
+
+put_data -- put smoothed data to the database

@@ -1,0 +1,25 @@
+#!/bin/sh -efu
+
+device -d db_dd -c "*idn?" > /dev/null
+
+while read t1; do
+  [ -n "${t1###*}" ] || continue
+  dd=$(date -d @$t1 +"%Y-%m-%d %H:%M:%S")
+#  f0=$(device -d db_dd -c "get_prev nmr_gen:0 $t1")
+  f0=$(wget -q -O - "http://slazav.xyz:8085/get_prev?name=nmr_gen:0&t1=$t1")
+  echo "$t1 $dd $f0"
+#
+done << EOF
+1528786416
+1529043739
+1529078529
+1529325705
+1529362336
+1529393713
+1529660050
+1529686461
+1530001805
+1530430662
+1530482355
+EOF
+

@@ -1,0 +1,13 @@
+#!/bin/sh -eu
+
+#device -d db_dd -c "*idn?"
+#device -d db_dd -c "create temp_corr FLOAT corrected temperature of He3"
+
+for f in data/*_smooth.txt; do
+  cat $f |
+  while read l; do
+    [ "${l#[0-9]}" != "$l" ] || continue
+    echo $l > /dev/stderr
+    echo "put temp_corr $l"
+  done
+done | ssh db_drydemag@slazav.xyz

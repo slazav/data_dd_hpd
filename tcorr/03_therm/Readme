@@ -1,0 +1,12 @@
+Thermometry
+
+Get noise thermometry from ../01_therm_noise and A-phase
+thermometry from ../02_therm_aphase
+
+Result:
+  T_he - K*T_ns = tau * K * dT_ns/dt
+
+  K = 0.97780
+  tau = 1538.9 s
+
+

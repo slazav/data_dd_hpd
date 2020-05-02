@@ -1,0 +1,30 @@
+#!/usr/bin/gnuplot
+
+set log y
+set grid
+
+t1=1528725300
+t2=1528995480
+t3=1529267100
+t4=1529599200
+t5=1529943840
+t6=1530376920
+
+
+plot\
+ "data/2018-06-11_temp.txt" using (($1-t1)/3600):2 with lines,\
+ "data/2018-06-14_temp.txt" using (($1-t2)/3600):2 with lines,\
+ "data/2018-06-17_temp.txt" using (($1-t3)/3600):2 with lines,\
+ "data/2018-06-21_temp.txt" using (($1-t4)/3600):2 with lines,\
+ "data/2018-06-25_temp.txt" using (($1-t5)/3600):2 with lines,\
+ "data/2018-06-30_temp.txt" using (($1-t6)/3600):2 with lines,\
+\
+ "data/2018-06-11_smooth.txt" using (($1-t1)/3600):2 with lines lc 0 notitle,\
+ "data/2018-06-14_smooth.txt" using (($1-t2)/3600):2 with lines lc 0 notitle,\
+ "data/2018-06-17_smooth.txt" using (($1-t3)/3600):2 with lines lc 0 notitle,\
+ "data/2018-06-21_smooth.txt" using (($1-t4)/3600):2 with lines lc 0 notitle,\
+ "data/2018-06-25_smooth.txt" using (($1-t5)/3600):2 with lines lc 0 notitle,\
+ "data/2018-06-30_smooth.txt" using (($1-t6)/3600):2 with lines lc 0 notitle
+
+
+pause -1
