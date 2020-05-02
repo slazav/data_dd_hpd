@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Update PNG picture
+
+############################################################
+## path to sig_filter program
+#my $sig_filter = '~/PROG/pico_osc/sig_filter/sig_filter';
+my $sig_filter = 'sig_filter';
+
+
+my $cfg = sigproc::read_cfg();
+
+############################################################
+## Process signals
+foreach my $sig (@ARGV) {
+  my $inf = sigproc::mk_name($sig, 'inf');
+  my $sigf = sigproc::mk_name($sig, 'sigf');
+  my $pars = sigproc::read_inf($inf);
+
+  my ($fmin, $fmax);
+  if ($pars->{fre_fft} && $cfg->{freq_span}) {
+    $fmin = $pars->{fre_fft} - $cfg->{freq_span}/2;
+    $fmax = $pars->{fre_fft} + $cfg->{freq_span}/2;
+  }
+
+  my $cmd= $sig_filter .
+         " -f sigf \"$sig\"" .
+         ($fmin ? " -F $fmin":"") .
+         ($fmax ? " -G $fmax":"") .
+         " > \"$sigf\"";
+  `$cmd`;
+}

@@ -1,0 +1,12 @@
+*.sig
+*.sigf
+*.png
+*.inf
+*.inff
+*.bak
+*.nmr1
+*.nmr2
+*.fig
+*.dat
+*/peaks
+

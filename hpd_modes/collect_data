@@ -1,0 +1,143 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Extract data from all inff files and save them into stage2 folder
+
+############################################################
+## directory list
+my @dirs;
+opendir DIR, '.' or die "can't open dir .: $!";
+foreach (readdir DIR) {
+  next unless -d $_;
+  next unless /^2018/;
+  push @dirs, $_;
+}
+closedir DIR;
+
+my $TC = 2.372743; # 25.7 bar
+
+
+foreach my $dir (sort @dirs) {
+  opendir DIR, $dir or die "can't open dir $dir: $!";
+  my @files;
+  foreach my $file (readdir DIR) {
+    next unless -f "$dir/$file";
+    next unless $file =~ /\.inf$/;
+    push @files, $file;
+  }
+  closedir DIR;
+
+  `mkdir -p $dir/peaks`;
+
+  open OUT, "> $dir/peaks/table.txt" or die "can't open file peaks/$dir/table.txt: $!";
+  print "> $dir\n";
+  print OUT "# file  time,s  quad,mA  grad,mA  exc,V  T/Tc  dI/dt,uA/s  ",
+             "ref_t larm_t time_x0 time_x time_l time_h time_y\n";
+
+
+  my $ts=0; # temperature sum
+  my $n=0;  # temperature counter
+  my $ptn=0; # point counter
+  my %ids;  # old excitation
+  my $sdir;
+
+  foreach my $file (sort @files) {
+    next unless -f "$dir/$file";
+    next unless $file =~ /\.inf$/;
+
+    my ($pars, $fpars);
+    $pars = sigproc::read_inf("$dir/$file");
+    $fpars = sigproc::read_inf("$dir/${file}f") if -f "$dir/${file}f";
+
+    next unless  $pars->{didt} && $pars->{didt} < 0; # one sweep direction
+
+
+    my $temp = ($pars->{temp_corr} || 0)*1e3/$TC;
+    printf OUT "%30s %20s %6.2f %6.2f %4.2f %5.3f %6.2f   %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f\n",
+      $file,
+      $pars->{t1abs},
+      $pars->{grad}*1e3,
+      $pars->{quad}*1e3,
+      $pars->{exc},
+      $temp,
+      ($pars->{didt}|| 0)*1e6,
+      ($fpars->{ref_t}   || 'NaN'),
+      ($fpars->{larm_t}  || 'NaN'),
+      ($fpars->{time_x0} || 'NaN'),
+      ($fpars->{time_x} || 'NaN'),
+      ($fpars->{time_l} || 'NaN'),
+      ($fpars->{time_h} || 'NaN'),
+      ($fpars->{time_y} || 'NaN')
+    ;
+
+    my $id = sprintf("%04.2f_%2.0f", $pars->{exc}, $pars->{grad}*1e3);
+    # goto next point
+    if (exists $ids{$id}) {
+      $ts/=$n; $n=0;
+      %ids = ();
+    }
+
+    # new point
+    if ($n==0){
+      $ptn++;
+      $sdir = sprintf("$dir/peaks/pt%03d", $ptn);
+      `mkdir -p $sdir`;
+      `rm -f $sdir/*.peak $sdir/temp.txt $sdir/time.txt`;
+       print STDERR "$ptn\n";
+    }
+
+    print STDERR "  $id - $n -- $file\n";
+
+    $n++;
+    $ts+=$temp;
+    $ids{$id}=1;
+
+    `echo $temp >> $sdir/temp.txt`;
+    `echo $pars->{t1abs} >> $sdir/time.txt`;
+    `echo $pars->{t2abs} >> $sdir/time.txt`;
+
+    foreach my $p (@{$fpars->{fig_peaks}}){
+      my @T = @{$p->{T}};
+      my @F = @{$p->{F}};
+      my @A = @{$p->{A}};
+      my @Q = @{$p->{Q}};
+      my @DF1;
+      my @DF2;
+      my @FF;
+      next unless $#T >-1;
+
+      # skip larmor peak
+      $p->{name} = "larm" if $p->{name} eq "l";
+      next if $p->{name} eq "larm";
+
+      # convert time to freq.shift, scale x2, x3 etc peaks:
+      # use constant sweep rate 20 uA/s and ref_t as reference!
+      my $dfdt = -sprintf("%.0f", 1e6*$pars->{didt}) * $pars->{dfdi} * 1e-6;
+      for (my $i=0; $i<$#T; $i++){
+        $DF1[$i] = ($T[$i] - $fpars->{ref_t})*$dfdt;
+        $DF2[$i] = $fpars->{larm_t} ? ($T[$i] - $fpars->{larm_t})*$dfdt : 'NaN';
+        $F[$i]/=$1 if $p->{name}=~/(\d)$/;
+      }
+      # remove numbers from names:
+      $p->{name}=~s/\d$//;
+
+      open PEAK, ">> $sdir/${id}_$p->{name}.peak"
+        or die "can't open file: $sdir/${id}_$p->{name}.peak: $!";
+      print PEAK "# $file\n";
+      # print raw peak data
+      for (my $i=0; $i<$#T; $i++){
+        printf PEAK "%e %e %e %e %e\n", $DF1[$i], $DF2[$i], $F[$i], $A[$i], $Q[$i];
+      }
+      print PEAK "\n";
+      close PEAK;
+
+    }
+  }
+  close OUT;
+}

@@ -1,0 +1,179 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Collect information about HPD signals (*.sig or *.sigf)
+# from databases and signal header
+#  write *.inf files with JSON
+#  write *.nmr files with NMR data
+#
+# usage: sig_get_info <files.sig>
+#
+
+############################################################
+## path to sig_filter program
+#my $sig_filter = '~/PROG/pico_osc/sig_filter/sig_filter';
+my $sig_filter = 'sig_filter';
+
+## path to graphene program:
+#my $graphene = 'device -d db_dd -c ';
+
+my $gr_http = "http://slazav.xyz:8085";
+
+
+############################################################
+# get CW NMR function
+sub get_nmr {
+  my $t1 = shift;
+  my $t2 = shift;
+
+  # get NMR data from the database
+  open DAT, "wget -q -O - '$gr_http/get_range?name=sweep_main&t1=$t1&t2=$t2' |"
+    or die "Can't run graphene program: $!\n";
+
+  my (@T, @I, @X, @Y, @A);
+  foreach (<DAT>){
+    my @arr = split '\s+';
+    push @T, $arr[0];
+    push @I, $arr[2];
+    push @X, $arr[4];
+    push @Y, $arr[5];
+  }
+  close DAT;
+
+  return (\@T, \@I, \@X, \@Y);
+}
+
+############################################################
+## automatic fix of phase
+sub fix_phase {
+  my $X=shift;
+  my $Y=shift;
+
+  # first and last point
+  my ($x1,$x2,$y1,$y2) = (${$X}[0],${$X}[$#{$X}],${$Y}[0],${$Y}[$#{$Y}]);
+
+  my $x0 = ($x1+$x2)/2;
+  my $y0 = ($y1+$y2)/2;
+  my $ph=atan2($y2-$y1,$x2-$x1);
+
+  my $cp = cos($ph);
+  my $sp = sin($ph);
+  my $max=0;
+  for (my $i=0; $i<=$#{$X}; $i++){
+    my $x = ${$X}[$i] - $x0;
+    my $y = ${$Y}[$i] - $y0;
+    ${$X}[$i] = $x*$cp + $y*$sp;
+    ${$Y}[$i] =-$x*$sp + $y*$cp;
+    my $A = sqrt($x*$x+$y*$y);
+    $max = $A if ($A > $max);
+  }
+  return ($x0,$y0,$ph,$max);
+}
+
+
+############################################################
+## Process signals
+foreach my $sig (@ARGV) {
+  my $pars;
+
+  ############################################################
+  ## Read signal header
+
+  open SIG, $sig or die "can't open sig file: $sig: $!\n";
+  $pars->{ch} = 0;
+  while (my $l = <SIG>){
+    chomp $l;
+    last if $l=~/^\*$/;
+    $pars->{t0abs}  = $1 if $l=~/^\s*t0abs: *([0-9\.eE+-]+)/;
+    $pars->{dt}     = $1 if $l=~/^\s*dt: *([0-9\.eE+-]+)/;
+    $pars->{t0}     = $1 if $l=~/^\s*t0: *([0-9\.eE+-]+)/;
+    $pars->{n}      = $1 if $l=~/^\s*points: *([0-9\.eE+-]+)/;
+    $pars->{ch}++ if $l=~/^\s*chan:/;
+  }
+
+  $pars->{timeS} = $pars->{n}*$pars->{dt};
+  $pars->{t1abs} = sprintf "%.9f", $pars->{t0abs} + $pars->{t0};
+  $pars->{t2abs} = sprintf "%.9f", $pars->{t0abs} + $pars->{t0} + $pars->{timeS};
+  close SIG;
+
+  ############################################################
+  ## Get some database parameters
+  my ($g, $t);
+  # generator parameters:
+  $g = `wget -q -O - '$gr_http/get_prev?name=nmr_gen&t1=$pars->{t0abs}'`
+#  $g = `$graphene "get_prev nmr_gen $pars->{t0abs}"`
+    or die "Can't run graphene program: $!\n";
+  ($t, $pars->{fre}, $pars->{exc}, $pars->{exc_ph}, $pars->{com}, $pars->{com_ph}) = split /\s+/, $g;
+
+  # temperature:
+  $g = `wget -q -O - '$gr_http/get_prev?name=temp&t1=$pars->{t0abs}'`
+#  $g = `$graphene "get temp $pars->{t0abs}"`
+    or die "Can't run graphene program: $!\n";
+  ($t, $pars->{temp}) = split /\s+/, $g;
+
+  # grad:
+  $g = `wget -q -O - '$gr_http/get_prev?name=sweep_grad&t1=$pars->{t0abs}'`
+#  $g = `$graphene "get sweep_grad $pars->{t0abs}"`
+    or die "Can't run graphene program: $!\n";
+  ($t, $pars->{grad}) = split /\s+/, $g;
+
+  # grad:
+  $g = `wget -q -O - '$gr_http/get_prev?name=sweep_quad&t1=$pars->{t0abs}'`
+#  $g = `$graphene "get sweep_quad $pars->{t0abs}"`
+    or die "Can't run graphene program: $!\n";
+  ($t, $pars->{quad}) = split /\s+/, $g;
+
+  # calclate fft frequency
+  my $sfre = 1/$pars->{dt}; # sampling freq
+  my $m1 = $pars->{fre} % $sfre;
+  my $m2 = $pars->{fre} % ($sfre/2);
+  $pars->{fre_fft} = ($m1<$sfre/2)? $m2 : $sfre/2-$m2;
+  $pars->{fre_sign} = ($m1<$sfre/2)? 1:-1;
+
+  ## Find exact frequency in the signal
+  if ($pars->{fre_fft}){
+    my $fspan = 1000;
+    my $fmin = $pars->{fre_fft} - $fspan/2;
+    my $fmax = $pars->{fre_fft} + $fspan/2;
+    my $cmd = "$sig_filter -f fit \"$sig\" -F $fmin -G $fmax";
+    my ($t, $fre, $tau, $amp, $ph) = split /\s+/,`$cmd`;
+
+    # print "  Fix FFT frequency: $pars->{fre_fft} -> $fre\n";
+    $pars->{fre_fft} = $fre;
+  }
+
+  # get NMR data from the database
+  my ($nmr_t, $nmr_i, $nmr_x, $nmr_y) =
+    get_nmr($pars->{t1abs}, $pars->{t2abs});
+
+  if ($#{$nmr_i} > -1) {
+    my $i1 = ${$nmr_i}[0];
+    my $i2 = ${$nmr_i}[$#{$pars->{nmr_i}}];
+    my $t1 = ${$nmr_t}[0];
+    my $t2 = ${$nmr_t}[$#{$pars->{nmr_t}}];
+    $pars->{didt} = ($i2-$i1)/($t2-$t1); # time to current - naive
+    $pars->{dfdi} = 405.886*20378/(2*3.1415926); # current to freq
+    $pars->{dfdt} = $pars->{didt}*$pars->{dfdi}; # time to freq shift
+
+    my $nmr1 = sigproc::mk_name($sig, 'nmr1');
+    open NMR, "> $nmr1" or die "can't open $nmr1: $!";
+    for (my $i=0;$i<=$#{$nmr_i}; $i++){
+      printf NMR "%.3f %.6f %e %e\n", $nmr_t->[$i], $nmr_i->[$i], $nmr_x->[$i], $nmr_y->[$i];
+    }
+    close NMR;
+  }
+  ($pars->{nmr_auto_x0}, $pars->{nmr_auto_y0}, $pars->{nmr_auto_ph}, $pars->{nmr_max}) =
+     fix_phase($nmr_x, $nmr_y);
+
+  ############################################################
+  ## Save parameters
+  my $inf = sigproc::mk_name($sig, 'inf');
+  sigproc::write_inf($inf, $pars);
+
+}

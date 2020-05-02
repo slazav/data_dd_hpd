@@ -1,0 +1,47 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Update PNG picture
+
+############################################################
+## path to sig_filter program
+#my $sig_filter = '~/PROG/pico_osc/sig_filter/sig_filter';
+my $sig_filter = 'sig_filter';
+
+
+my $cfg = sigproc::read_cfg();
+
+############################################################
+## Process signals
+foreach my $sig (@ARGV) {
+  my $inf = sigproc::mk_name($sig, 'inf');
+  my $png = sigproc::mk_name($sig, 'png');
+  my $pars = sigproc::read_inf($inf);
+
+  my ($fmin, $fmax);
+  if ($pars->{fre_fft} && $cfg->{freq_span}) {
+    $fmin = $pars->{fre_fft} - $cfg->{freq_span}/2;
+    $fmax = $pars->{fre_fft} + $cfg->{freq_span}/2;
+  }
+
+  my $cmd= $sig_filter .
+         ($pars->{tmin}   ? " -T $pars->{tmin}":"") .
+         ($pars->{tmax}   ? " -U $pars->{tmax}":"") .
+         " -f sfft_pnm \"$sig\" -l" .
+         ($fmin ?           " -F $fmin":"") .
+         ($fmax ?           " -G $fmax":"") .
+         ($pars->{amin}   ? " -A $pars->{amin}":"") .
+         ($pars->{amax}   ? " -B $pars->{amax}":"") .
+         ($pars->{png_win}? " -w $pars->{png_win}":"") .
+         ($pars->{png_w}  ? " -W $pars->{W}":"") .
+         ($pars->{png_h}  ? " -H $pars->{H}":"") .
+         " | sig_pnmtopng > \"$png\"";
+printf STDERR "$cmd\n";
+  `$cmd`;
+}

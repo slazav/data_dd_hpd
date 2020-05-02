@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# get CW data from the signal
+# (for one channel, only amplitude can measured,
+#  lock-in with fixed frequency is not accurate enough)
+#
+#  write *.nmr2 files with NMR data
+#
+# usage: sig_get_nmr2 <files.sig>
+#
+
+############################################################
+## path to sig_filter program
+#my $sig_filter = '~/PROG/pico_osc/sig_filter/sig_filter';
+my $sig_filter = 'sig_filter';
+
+
+my $cfg = sigproc::read_cfg();
+
+
+############################################################
+## Process signals
+foreach my $sig (@ARGV) {
+  my $inf = sigproc::mk_name($sig, 'inf');
+  my $nmr = sigproc::mk_name($sig, 'nmr2');
+  my $pars = sigproc::read_inf($inf);
+
+  next unless ($pars->{fre_fft});
+  my $fspan = 1000;
+  my $fmin = $pars->{fre_fft} - $fspan/2;
+  my $fmax = $pars->{fre_fft} + $fspan/2;
+
+  ## get CW data from the signal
+  # for one channel, only amplitude can measured
+  # (lock-in with fixed frequency is not accurate enough)
+  my $win = $cfg->{nmr2_win} || 50000;
+  my $cmd= "$sig_filter -f slockin \"$sig\" -F $fmin -G $fmax -w $win";
+
+  if ($pars->{ch}<2) { $cmd .= " -f $pars->{fre_fft}"; }
+  my (@sfft_t, @sfft_x, @sfft_y);
+  foreach (split /\n/, `$cmd`){
+    my ($t,$x,$y) = split /\s+/;
+    push @sfft_t, $t;
+    push @sfft_x, $x;
+    push @sfft_y, $y;
+  }
+  my $nmr2 = sigproc::mk_name($sig, 'nmr2');
+  open NMR, "> $nmr2" or die "can't open $nmr2: $!";
+  for (my $i=0;$i<=$#sfft_t; $i++){
+    printf NMR "%.3f %e %e\n", $pars->{t1abs}+$sfft_t[$i], $sfft_x[$i], $sfft_y[$i];
+  }
+  close NMR;
+}

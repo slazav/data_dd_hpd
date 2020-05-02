@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Update ref_t in inff files
+
+my $gr_http = "http://slazav.xyz:8085";
+
+
+############################################################
+## Process signals
+
+foreach my $sig (@ARGV) {
+
+  my $inf  = sigproc::mk_name($sig, 'inf');
+  my $inff = sigproc::mk_name($sig, 'inff');
+  my $nmr1 = sigproc::mk_name($sig, 'nmr1');
+  my $pars = sigproc::read_inf($inf);
+  my $fpars = sigproc::read_inf($inff);
+
+  next if $pars->{fre} < 1000000;
+
+  ## read nmr data from nmr1 file
+  next unless (open NMR, $nmr1);
+  foreach (<NMR>){
+    my ($t,$i,$x,$y) = split /\s+/;
+    push @{$pars->{nmr_t}}, $t - $pars->{t1abs};
+    push @{$pars->{nmr_i}}, $i;
+    push @{$pars->{nmr_x}}, $x;
+    push @{$pars->{nmr_y}}, $y;
+    push @{$pars->{nmr_a}}, sqrt($x*$x+$y*$y);
+  }
+  close NMR;
+
+  # sweep rate, usually +20/-20 uA/s
+  my $didt = sprintf "%.0f", $pars->{didt}*1e6;
+
+  # Simetimes we have non-unifirm sweep at near signal tails:
+  # - We do not want to use exact didt value, but rounded one.
+  # - Use center of the region as reference
+  my @ii = @{$pars->{nmr_i}};
+  my @tt = @{$pars->{nmr_t}};
+  my $i0 = $ii[int($#ii/2)];
+  my $t0 = $tt[int($#ii/2)];
+
+  # reference current/time
+  $fpars->{ref_i} = 0.866;
+  $fpars->{ref_t} = $t0 + ($fpars->{ref_i} - $i0)/$didt*1e6;
+
+  print "$sig: $didt $fpars->{ref_t} $fpars->{ref_i}\n";
+  sigproc::write_inf($inff, $fpars);
+
+}

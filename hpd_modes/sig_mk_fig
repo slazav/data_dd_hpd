@@ -1,0 +1,282 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Update FIG file
+my $sig_filter = 'sig_filter';
+
+
+############################################################
+
+my $cfg = sigproc::read_cfg();
+
+############################################################
+## Process signals
+foreach my $sig (@ARGV) {
+
+  my $inf  = sigproc::mk_name($sig, 'inf');
+  my $inff = sigproc::mk_name($sig, 'inff');
+  my $fig  = sigproc::mk_name($sig, 'fig');
+  my $png  = sigproc::mk_name($sig, 'png');
+  my $nmr1 = sigproc::mk_name($sig, 'nmr1');
+
+  my $pars = sigproc::read_inf($inf);
+  my $fpars;
+
+  ## read nmr data from nmr1 file
+  if (open NMR, $nmr1) {
+    foreach (<NMR>){
+      my ($t,$i,$x,$y) = split /\s+/;
+      push @{$pars->{nmr_t}}, $t - $pars->{t1abs};
+      push @{$pars->{nmr_i}}, $i;
+      push @{$pars->{nmr_x}}, $x;
+      push @{$pars->{nmr_y}}, $y;
+      push @{$pars->{nmr_a}}, sqrt($x*$x+$y*$y);
+    }
+    close NMR;
+
+    # Simetimes we have non-unifirm sweep at near signal tails:
+    # - We do not want to use exact didt value, but rounded one.
+    # - Use center of the region as reference
+    # integer sweep rate, usually +20/-20 uA/s
+    my $didt = sprintf "%.0f", $pars->{didt}*1e6;
+    my @ii = @{$pars->{nmr_i}};
+    my @tt = @{$pars->{nmr_t}};
+    my $i0 = $ii[int($#ii/2)];
+    my $t0 = $tt[int($#ii/2)];
+    # reference current/time
+    $fpars->{ref_i} = 0.866;
+    $fpars->{ref_t} = $t0 + ($fpars->{ref_i} - $i0)/$didt*1e6;
+  }
+
+
+
+  # update fig file
+  `sig_pngfig -m update -p $png $fig`;
+
+  # conversion
+  my ($x0, $kx, $y0, $ky) = split /\s+/, `sig_pngfig -m get_cnv $fig`;
+  # process user information from fig file
+  my @data = split /\n/, `sig_pngfig -m get_data $fig`;
+  foreach my $l (@data){
+    print "Fig data: $l\n";
+    my @a = split /\s+/, $l;
+    die "bad data: $l" if scalar @a < 6;
+    my $type  = $a[0];
+    my $color = $a[1];
+    my $depth = $a[2];
+    my $comm = '';
+    my (@x,@y);
+    for (my $i=3; $i<=$#a; $i++){
+      if ($a[$i] eq '#') {
+        $comm = $a[$i+1] if $i<$#a;
+        last;
+      }
+      push @x, $a[$i] if $i%2==1;
+      push @y, $a[$i] if $i%2==0;
+    }
+    # convert coordinates
+#    $_ = int($_*$kx + $x0) foreach (@x);
+#    $_ = int($_*$ky + $y0) foreach (@y);
+
+    # color=2 : t line
+    if ($color == 2 && $#x>=1)  {
+      $fpars->{"time_$comm"}=($x[0]+$x[1])/2;
+      next;
+    }
+
+    # color=1 : Larmor point
+    if ($color == 1 && $type eq 'POINT')  {
+      $fpars->{fig_lt}=$x[0];
+      $fpars->{fig_lf}=$y[0];
+
+      # if CW data exists calculate frequency shift
+      my $ncw = $#{$pars->{nmr_i}}+1;
+      next if $ncw<1;
+
+      my $lt = $fpars->{fig_lt};
+      my $lf = $fpars->{fig_lf};
+      my @tt = @{$pars->{nmr_t}};
+      my @ii = @{$pars->{nmr_i}};
+
+      # find current at the time $lt (linear interlopation):
+      my $li = 0;
+      for (my $i = 0; $i <$#tt; $i++){
+        next unless $tt[$i]<$lt && $tt[$i+1]>=$lt;
+        $li = $ii[$i] + ($lt-$tt[$i])*($ii[$i+1]-$ii[$i])/($tt[$i+1]-$tt[$i]);
+        last;
+      }
+      # find time when current is $li * (1 - $df/f0)
+      my $t0 = 0;
+
+      $li *= 1 + ($pars->{fre_fft}-$lf)/$pars->{fre};
+      for (my $i = 0; $i <$#ii; $i++){
+        next unless ($ii[$i]<$li && $ii[$i+1]>=$li) ||
+                    ($ii[$i]>=$li && $ii[$i+1]<$li);
+        $t0 = $tt[$i] + ($li-$ii[$i])*($tt[$i+1]-$tt[$i])/($ii[$i+1]-$ii[$i]);
+        last;
+      }
+      print "larm_i: $li\n";
+      print "larm_t: $t0\n";
+      $fpars->{larm_i} = $li;
+      $fpars->{larm_t} = $t0;
+    }
+
+    # color=0 : Side bands
+    if ($color == 0 && $type eq 'LINE')  {
+      my (@T,@F,@A,@Q);
+      for (my $i=0; $i<=$#x; $i++){
+        push @T, $x[$i];
+        push @F, $y[$i];
+      }
+
+      my $cmd= $sig_filter .
+         " -f sfft_peak \"$sig\"" .
+         " -T " . join(",", @T) .
+         " -F " . join(",", @F) .
+         ($cfg->{peak_fwin} ? " -w $cfg->{peak_fwin}":"") .
+         ($cfg->{peak_win} ? " -w $cfg->{peak_win}":"") .
+         ($cfg->{peak_stp} ? " -s $cfg->{peak_stp}":"");
+      @T=(); @F=(); @A=(); @Q=();
+      print "Running sig_filter: $cmd\n";
+
+      foreach  (split "\n", `$cmd`){
+        my ($t, $f, $a, $a0) = split /\s+/;
+        next unless ($t && $f && $a && $a0);
+        next unless $a/$a0 > ($cfg->{peak_thr} || 4);
+        push @T, $t;
+        push @F, $f - $pars->{fre_fft};
+        push @A, $a;
+        push @Q, $a/$a0; # peak quality
+      }
+      push @{$fpars->{fig_peaks}}, {name=>$comm, T=>[@T], F=>[@F], A=>[@A], Q=>[@Q]};
+    }
+  }
+
+  ############################################################
+  ## Add more data do fig
+
+  open FIG, ">> $fig" or die "Can't open fig file: $!\n";
+
+  # frequency label
+  my $xt = int(1*$kx + $x0);
+  my $yt = int($pars->{fre_fft}*$ky + $y0);
+  print FIG "4 0 0 100 -1 18 10 0.0000 4 135 375 $xt $yt $pars->{fre} Hz\\001\n";
+
+#  # temperature label
+#  $xt = $X1 + $tl;
+#  $yt = $Y2 - $tl;
+#  my $T = sprintf "%.3f", $pars->{temp}*1000;
+#  print FIG "4 0 0 100 -1 18 10 0.0000 4 135 375 $xt $yt T = $T mK\\001\n";
+
+  # amplitude plot:
+  my $X1 = int(  1 * $sigproc::cm2fig);
+  my $X2 = int( 11 * $sigproc::cm2fig);
+  my $Y1 = int(9.5 * $sigproc::cm2fig);
+  my $Y2 = int( 15 * $sigproc::cm2fig);
+  my $YC=int(($Y2+$Y1)/2);
+
+  print FIG "2 2 0 1 0 7 150 -1 -1 0.000 0 0 -1 0 0 5\n",
+            "\t$X1 $Y1  $X2 $Y1  $X2 $Y2  $X1 $Y2 $X1 $Y1\n";
+  print FIG "2 1 0 1 0 7 150 -1 -1 0.000 0 0 -1 0 0 2\n",
+            "\t$X1 $YC  $X2 $YC\n";
+
+  # SFFT amplitude plot
+  if ($#{$pars->{nmr2_t}} > -1) {
+    my @cw2fig   = ($YC, -($Y2-$Y1)/$pars->{nmr2_max}/2.05);
+    my $ncw=$#{$pars->{nmr2_t}}+1;
+    if ($pars->{ch}>1) {
+      print FIG "2 1 0 3 25 7 70 -1 -1 0.000 1 1 -1 0 0 $ncw\n";
+      for (my $i=0; $i<$ncw; $i++){
+        my $x = int($x0 + $kx*${$pars->{nmr2_t}}[$i]);
+        my $y = int($cw2fig[0] + $cw2fig[1]*${$pars->{nmr2_x}}[$i]);
+        print FIG "\t$x $y\n";
+      }
+      print FIG "2 1 0 3 23 7 70 -1 -1 0.000 1 1 -1 0 0 $ncw\n";
+      for (my $i=0; $i<$ncw; $i++){
+        my $x = int($x0 + $kx*${$pars->{nmr2_t}}[$i]);
+        my $y = int($cw2fig[0] + $cw2fig[1]*${$pars->{nmr2_y}}[$i]);
+        print FIG "\t$x $y\n";
+      }
+    }
+    print FIG "2 1 0 3 15 7 70 -1 -1 0.000 1 1 -1 0 0 $ncw\n";
+    for (my $i=0; $i<$ncw; $i++){
+      my $x = int($x0 + $kx*${$pars->{nmr2_t}}[$i]);
+      my $y = int($cw2fig[0] + $cw2fig[1]*${$pars->{nmr2_a}}[$i]);
+      print FIG "\t$x $y\n";
+    }
+  }
+
+  if ($#{$pars->{nmr_i}} > -1) {
+    # CW NMR amplitude plot
+    my @cw2fig = ($YC, -($Y2-$Y1)/$pars->{nmr_max}/2.05);
+    my $ncw=$#{$pars->{nmr_t}}+1;
+    print FIG "2 1 0 2 25 7 60 -1 -1 6.000 1 1 7 0 0 $ncw\n";
+    for (my $i=0; $i<$ncw; $i++){
+      my $x = int($x0 + $kx*${$pars->{nmr_t}}[$i]);
+      my $y = int($cw2fig[0] + $cw2fig[1]*${$pars->{nmr_x}}[$i]);
+      print FIG "\t$x $y\n";
+    }
+    print FIG "2 1 0 2 23 7 60 -1 -1 6.000 1 1 7 0 0 $ncw\n";
+    for (my $i=0; $i<$ncw; $i++){
+      my $x = int($x0 + $kx*${$pars->{nmr_t}}[$i]);
+      my $y = int($cw2fig[0] + $cw2fig[1]*${$pars->{nmr_y}}[$i]);
+      print FIG "\t$x $y\n";
+    }
+    print FIG "2 1 0 2 15 7 60 -1 -1 6.000 1 1 7 0 0 $ncw\n";
+    for (my $i=0; $i<$ncw; $i++){
+      my $x = int($x0 + $kx*${$pars->{nmr_t}}[$i]);
+      my $y = int($cw2fig[0] + $cw2fig[1]*${$pars->{nmr_a}}[$i]);
+      print FIG "\t$x $y\n";
+    }
+  }
+
+  open PP, "| sig_pngfig -m put_data $fig" or die "can't run sig_pngfig: $!";
+
+  # draw peaks
+  foreach my $L (@{$fpars->{fig_peaks}}){
+    my $n = $#{$L->{T}};
+    print  "Add peak: $L->{name} ($n points)\n";
+    for (my $i=0; $i <= $n; $i++){
+      my $t = ${$L->{T}}[$i];
+      my $f = ${$L->{F}}[$i] + $pars->{fre_fft};
+      print PP "POINT 3 60 $t $f # $L->{name}\n";
+    }
+  }
+
+  # draw larmor line:
+  if ($fpars->{larm_i}) {
+    print PP "LINE 2 65";
+    my @tt = @{$pars->{nmr_t}};
+    my @ii = @{$pars->{nmr_i}};
+    for (my $i = 0; $i <=$#tt; $i++){
+      my $df = $pars->{fre_sign}*($ii[$i]/$fpars->{larm_i}-1)*$pars->{fre} + $pars->{fre_fft};
+      print PP " $tt[$i] $df";
+    }
+    print PP " # nmr1\n";
+  }
+  close PP;
+
+  # write png file
+#  my $figpng = "f_$sig"; $figpng=~s/\.sigf?$/.png/;
+#  `fig2dev -Lpng $fig $figpng`;
+
+
+  ############################################################
+  ## Save parameters
+  open INFF, "> $inff" or die "can't open file: $inff: $!\n";
+  print INFF JSON->new->pretty->canonical->utf8->encode($fpars);
+  close INFF;
+
+}
+
+
+
+
+
+

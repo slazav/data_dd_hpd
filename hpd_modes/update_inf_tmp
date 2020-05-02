@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use FindBin;
+use lib $FindBin::Bin;
+use sigproc;
+
+############################################################
+############################################################
+# Add temp_corr to inf file
+
+my $gr_http = "http://slazav.xyz:8085";
+
+
+############################################################
+## Process signals
+foreach my $sig (@ARGV) {
+
+  my $inf = sigproc::mk_name($sig, 'inf');
+  my $pars = sigproc::read_inf($inf);
+
+  # get_data:
+  my $t;
+  my $g = `wget -q -O - '$gr_http/get?name=temp_corr:1&t1=$pars->{t0abs}'`;
+  next unless $g;
+  ($t, $pars->{temp_corr}) = split /\s+/, $g;
+  print "> $t $pars->{temp_corr}\n";
+
+  # Save parameters
+  sigproc::write_inf($inf, $pars);
+
+}
