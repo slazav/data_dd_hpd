@@ -11,10 +11,11 @@ use sigproc;
 
 ############################################################
 ## directory list
+my $basedir='../hpd_modes';
 my @dirs;
-opendir DIR, '.' or die "can't open dir .: $!";
+opendir DIR, $basedir or die "can't open dir .: $!";
 foreach (readdir DIR) {
-  next unless -d $_;
+  next unless -d "$basedir/$_";
   next unless /^2018/;
   push @dirs, $_;
 }
@@ -24,18 +25,19 @@ my $TC = 2.372743; # 25.7 bar
 
 
 foreach my $dir (sort @dirs) {
-  opendir DIR, $dir or die "can't open dir $dir: $!";
+  opendir DIR, "$basedir/$dir" or die "can't open dir $dir: $!";
   my @files;
   foreach my $file (readdir DIR) {
-    next unless -f "$dir/$file";
+    next unless -f "$basedir/$dir/$file";
     next unless $file =~ /\.inf$/;
     push @files, $file;
   }
   closedir DIR;
 
-  `mkdir -p $dir/peaks`;
+  `mkdir -p $dir`;
+  `rm -f $dir/*`;
 
-  open OUT, "> $dir/peaks/table.txt" or die "can't open file peaks/$dir/table.txt: $!";
+  open OUT, "> $dir/table.txt" or die "can't open file $dir/table.txt: $!";
   print "> $dir\n";
   print OUT "# file  time,s  quad,mA  grad,mA  exc,V  T/Tc  dI/dt,uA/s  ",
              "ref_t larm_t time_x0 time_x time_l time_h time_y\n";
@@ -48,12 +50,12 @@ foreach my $dir (sort @dirs) {
   my $sdir;
 
   foreach my $file (sort @files) {
-    next unless -f "$dir/$file";
+    next unless -f "$basedir/$dir/$file";
     next unless $file =~ /\.inf$/;
 
     my ($pars, $fpars);
-    $pars = sigproc::read_inf("$dir/$file");
-    $fpars = sigproc::read_inf("$dir/${file}f") if -f "$dir/${file}f";
+    $pars = sigproc::read_inf("$basedir/$dir/$file");
+    $fpars = sigproc::read_inf("$basedir/$dir/${file}f") if -f "$basedir/$dir/${file}f";
 
     next unless  $pars->{didt} && $pars->{didt} < 0; # one sweep direction
 
@@ -86,9 +88,6 @@ foreach my $dir (sort @dirs) {
     # new point
     if ($n==0){
       $ptn++;
-      $sdir = sprintf("$dir/peaks/pt%03d", $ptn);
-      `mkdir -p $sdir`;
-      `rm -f $sdir/*.peak $sdir/temp.txt $sdir/time.txt`;
        print STDERR "$ptn\n";
     }
 
@@ -98,9 +97,20 @@ foreach my $dir (sort @dirs) {
     $ts+=$temp;
     $ids{$id}=1;
 
-    `echo $temp >> $sdir/temp.txt`;
-    `echo $pars->{t1abs} >> $sdir/time.txt`;
-    `echo $pars->{t2abs} >> $sdir/time.txt`;
+    # read NMR data (I vs T)
+    my @nmr_t;
+    my @nmr_i;
+    my $nmr1 = "$basedir/$dir/$file";
+    $nmr1=~s/\.inf$//; $nmr1.=".nmr1";
+    if (open NMR, $nmr1) {
+      foreach (<NMR>){
+        my ($t,$i,$x,$y) = split /\s+/;
+        push @nmr_t, $t - $pars->{t1abs};
+        push @nmr_i, $i;
+      }
+      close NMR;
+    }
+     print STDERR "NMR: $#nmr_t $nmr1\n";
 
     foreach my $p (@{$fpars->{fig_peaks}}){
       my @T = @{$p->{T}};
@@ -111,6 +121,20 @@ foreach my $dir (sort @dirs) {
       my @DF2;
       my @FF;
       next unless $#T >-1;
+
+      # interpolate NMR current
+      my @I;
+      foreach my $t (@T){
+        for (my $i=0; $i<=$#nmr_t-1; $i++){
+          my $t1 = $nmr_t[$i];
+          my $t2 = $nmr_t[$i+1];
+          next unless ($t>$t1 && $t<=$t2);
+          my $i1 = $nmr_i[$i];
+          my $i2 = $nmr_i[$i+1];
+          push @I, $i1 + ($i2-$i1)/($t2-$t1)*($t-$t1);
+          last;
+        }
+      }
 
       # skip larmor peak
       $p->{name} = "larm" if $p->{name} eq "l";
@@ -127,12 +151,13 @@ foreach my $dir (sort @dirs) {
       # remove numbers from names:
       $p->{name}=~s/\d$//;
 
-      open PEAK, ">> $sdir/${id}_$p->{name}.peak"
-        or die "can't open file: $sdir/${id}_$p->{name}.peak: $!";
+      my $fname = sprintf "$dir/%03d_${id}_$p->{name}.dat", $ptn;
+      open PEAK, "> $fname" or die "can't open file: $fname: $!";
       print PEAK "# $file\n";
+      print PEAK "# df1, df2, nmr_i, freq, amp, err\n";
       # print raw peak data
       for (my $i=0; $i<$#T; $i++){
-        printf PEAK "%e %e %e %e %e\n", $DF1[$i], $DF2[$i], $F[$i], $A[$i], $Q[$i];
+        printf PEAK "%e %e %e %e %e %e\n", $DF1[$i], $DF2[$i], $I[$i], $F[$i], $A[$i], $Q[$i];
       }
       print PEAK "\n";
       close PEAK;
