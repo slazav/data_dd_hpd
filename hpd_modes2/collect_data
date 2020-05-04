@@ -78,7 +78,7 @@ foreach my $dir (sort @dirs) {
       ($fpars->{time_y} || 'NaN')
     ;
 
-    my $id = sprintf("%04.2f_%2.0f", $pars->{exc}, $pars->{grad}*1e3);
+    my $id = sprintf("%04.2f_%02.0f", $pars->{exc}, $pars->{grad}*1e3);
     # goto next point
     if (exists $ids{$id}) {
       $ts/=$n; $n=0;
