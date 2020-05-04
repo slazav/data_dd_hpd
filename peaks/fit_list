@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import os.path
 import re
 import numpy
 import math
@@ -8,8 +9,11 @@ import scipy.optimize
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('pref')
-parser.add_argument('dirname')
+parser.add_argument('lfile') # the list
+
+parser.add_argument('--datadir', default='../hpd_modes2',
+                    help='folder with source data')
+
 args = parser.parse_args()
 
 
@@ -64,7 +68,13 @@ def minfunc(pars, x,y,lcnt,ltype):
 ###########
 
 #################
-## read data
+## Read data.
+## Format of list file:
+##  * filename, path from --datadir
+##  * classification, default 0
+##  * power, default 0.5 (multiply values by exc^power)
+##    use 0.5 is for low-temp signals, -0.5 for high-temp ones
+##  * quality, default 0 (skip points with peak/base ratio < q)
 exc   = numpy.array([])
 grad  = numpy.array([])
 xx    = numpy.array([])
@@ -72,29 +82,74 @@ yy    = numpy.array([])
 ltype = numpy.array([], dtype=int)
 lcnt  = numpy.array([], dtype=int)
 
+# default values
+def_type = 0
+def_qual = 0
+def_pwr  = -0.5
+def_ymin = -math.inf
+def_ymax = +math.inf
+
 n=0
-for l in open(args.pref+".lst"):
-  fname, m = l.split()
-  mm = re.search("^([0-9]+)_([0-9\.]+)_([0-9\.-]+)_([a-z]+).dat$", fname, re.IGNORECASE)
+for l in open(args.lfile):
+  tmp = l.split()
+  if len(tmp) < 1: continue # empty lines
+  if tmp[0][0] == "#": continue # comments
+
+  # set default values
+  t = def_type
+  qual = def_qual
+  pwr  = def_pwr
+  ymin = def_ymin
+  ymax = def_ymax
+
+  # parse arguments
+  for i in range(1, len(tmp)):
+    mm = re.search("^([a-z0-9_]+)=(.*)", tmp[i], re.IGNORECASE)
+    if not mm:
+      print("Error: can't parse argument: ", tmp[i])
+      continue
+    if mm.group(1) == 'type': t    = int(mm.group(2))
+    if mm.group(1) == 'qual': qual = float(mm.group(2))
+    if mm.group(1) == 'pwr':  pwr  = float(mm.group(2))
+    if mm.group(1) == 'ymin': ymin = float(mm.group(2))
+    if mm.group(1) == 'ymax': ymax = float(mm.group(2))
+  if tmp[0] == 'set': # set defaults
+    def_type = t
+    def_qual = qual
+    def_pwr  = pwr
+    def_ymin = ymin
+    def_ymax = ymax
+    continue
+
+  fname = tmp[0]
+
+  # parse filename
+  mm = re.search("([0-9]+)_([0-9\.]+)_(\s*[0-9\.-]+)_([a-z]*).dat$", fname, re.IGNORECASE)
   if not mm:
     print("Error: can't parse fname: ", fname)
     continue
-  m = int(m)
   e = float(mm.group(2))
   g = float(mm.group(3))
 
-  df1,df2,ii,f,a,q = numpy.loadtxt(args.dirname + '/' + fname, unpack=True, comments='#')
+  # load file
+  df1,df2,ii,f,a,q = numpy.loadtxt(args.datadir + "/" + fname, unpack=True, comments='#')
 
-  jj = q>1
+  jj = q>qual # skip low-quality points
 
   x = -(ii[jj]-0.86641)*dfdi * 1e-3
-  y = f[jj]**2 * 1e-6 / math.sqrt(e)
+  y = f[jj]**2 * 1e-6 * e**pwr
+
+  # skip ymin/ymax
+  jj = numpy.logical_and(y>=ymin, y<=ymax)
+  if not numpy.all(jj):
+    x = x[jj]
+    y = y[jj]
 
   xx = numpy.append(xx,x)
   yy = numpy.append(yy,y)
   exc   = numpy.append(exc,   numpy.ones(x.size) * e)
   grad  = numpy.append(grad,  numpy.ones(x.size) * g)
-  ltype = numpy.append(ltype, numpy.ones(x.size, dtype=int) * m)
+  ltype = numpy.append(ltype, numpy.ones(x.size, dtype=int) * t)
   lcnt  = numpy.append(lcnt,  numpy.ones(x.size, dtype=int) * n)
   n+=1
 
@@ -112,7 +167,7 @@ pars = numpy.ones(N+M)
 for ci in range(lcnt_v.size):
   ii = lcnt==lcnt_v[ci]
   pp = numpy.polyfit(xx[ii],yy[ii], 1)
-  pars[ci] = pp[1]
+  pars[ci] = -pp[1]/pp[0]
   ti = numpy.where(ltype_v == ltype[ii][0])[0]
   pars[N+ti] = pp[0]
 
@@ -148,8 +203,9 @@ for i in range(len(l_cnt)):
   c = cols[t%len(cols)]
 
   ax[0].plot(xx[ii], yy[ii], c+'.')
-  ax[1].plot(l_exc[i], l_slope[i], c+'*')
+#  ax[1].plot(l_exc[i], l_slope[i], c+'*')
   ax[2].plot(l_exc[i], l_shift[i], c+'*')
+  ax[1].plot(l_grad[i], l_shift[i], c+'*')
 
 for i in range(len(l_cnt)):
   ii = lcnt==l_cnt[i]
@@ -163,11 +219,14 @@ for i in range(len(l_cnt)):
 #  ax[2].plot(exc[ii],x0[ii], c+'*')
 
 # ax[0].set_xlim([0,0.5])
-plt.savefig(args.pref+".png")
+pref, e = os.path.splitext(args.lfile)
+#ax[0].set_xlim([-1.1,-0.8])
+#ax[0].set_ylim([0,1.2])
+plt.savefig(pref+".png")
 
 #################
 ### save results
-numpy.savetxt(args.pref+".dat", numpy.column_stack((l_cnt,l_exc,l_grad,l_type,l_shift,l_slope)),
+numpy.savetxt(pref+".dat", numpy.column_stack((l_cnt,l_exc,l_grad,l_type,l_shift,l_slope)),
   header = "cnt -- exc -- grad -- type -- shift -- slope",
   fmt='%d %.2f %.2f  %d  %e %e')
 
