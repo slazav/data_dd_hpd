@@ -1,0 +1,173 @@
+#!/usr/bin/python3
+import os
+import re
+import numpy
+import math
+import matplotlib.pyplot as plt
+import scipy.optimize
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('pref')
+parser.add_argument('dirname')
+args = parser.parse_args()
+
+
+ax=[0,0,0]
+ax[0] = plt.subplot(121)
+ax[1] = plt.subplot(222)
+ax[2] = plt.subplot(224)
+
+dfdi=405.886*20378/(2*3.1415926)
+
+###########
+# Fit a set of files. Slope depends on the line type,
+# shift is separate for each line
+#   x - frequency shift in HPD (calculated from some arbitrary point)
+#   lcnt  - line count 0..N-1
+#   ltype - line type 0..M-1
+# Return value:
+#   y - linear functions of x,
+#       freq^2 * sqrt(e) for high-frequency modes
+# Paramters:
+#   shifts: N values
+#   slopes: M values
+def fitfunc(pars, x,lcnt,ltype):
+  lcnt_v  = numpy.unique(lcnt)
+  ltype_v = numpy.unique(ltype)
+  N = lcnt_v.size
+  M = ltype_v.size
+  if (pars.size != N + M):
+    print("Error: wrong number of parameters in fitfunc: %d != %d + %d " %(pars.size,N,M))
+    exit(1)
+  shifts = pars[0:N]
+  slopes = pars[N:N+M]
+
+  y = numpy.zeros(x.size)
+  for i in range(lcnt_v.size):
+    ii = lcnt == lcnt_v[i]
+    y[ii] = x[ii]-shifts[i]
+
+  for i in range(ltype_v.size):
+    ii = ltype == ltype_v[i]
+    y[ii] *= slopes[i]
+  return y
+
+#########################
+# function for minimization
+def minfunc(pars, x,y,lcnt,ltype):
+  yf = fitfunc(pars, x,lcnt,ltype)
+  sum = numpy.linalg.norm(y-yf)
+  print(sum)
+  return sum
+
+###########
+
+#################
+## read data
+exc   = numpy.array([])
+grad  = numpy.array([])
+xx    = numpy.array([])
+yy    = numpy.array([])
+ltype = numpy.array([], dtype=int)
+lcnt  = numpy.array([], dtype=int)
+
+n=0
+for l in open(args.pref+".lst"):
+  fname, m = l.split()
+  mm = re.search("^([0-9]+)_([0-9\.]+)_([0-9\.-]+)_([a-z]+).dat$", fname, re.IGNORECASE)
+  if not mm:
+    print("Error: can't parse fname: ", fname)
+    continue
+  m = int(m)
+  e = float(mm.group(2))
+  g = float(mm.group(3))
+
+  df1,df2,ii,f,a,q = numpy.loadtxt(args.dirname + '/' + fname, unpack=True, comments='#')
+
+  jj = q>1
+
+  x = -(ii[jj]-0.86641)*dfdi * 1e-3
+  y = f[jj]**2 * 1e-6 / math.sqrt(e)
+
+  xx = numpy.append(xx,x)
+  yy = numpy.append(yy,y)
+  exc   = numpy.append(exc,   numpy.ones(x.size) * e)
+  grad  = numpy.append(grad,  numpy.ones(x.size) * g)
+  ltype = numpy.append(ltype, numpy.ones(x.size, dtype=int) * m)
+  lcnt  = numpy.append(lcnt,  numpy.ones(x.size, dtype=int) * n)
+  n+=1
+
+
+
+#################
+### fit data
+
+lcnt_v  = numpy.unique(lcnt)
+ltype_v = numpy.unique(ltype)
+N = lcnt_v.size
+M = ltype_v.size
+pars = numpy.ones(N+M)
+
+for ci in range(lcnt_v.size):
+  ii = lcnt==lcnt_v[ci]
+  pp = numpy.polyfit(xx[ii],yy[ii], 1)
+  pars[ci] = pp[1]
+  ti = numpy.where(ltype_v == ltype[ii][0])[0]
+  pars[N+ti] = pp[0]
+
+res = scipy.optimize.minimize(minfunc, pars, (xx,yy,lcnt,ltype),
+   options={'disp': False, 'maxiter': 10000})
+pars = numpy.array(res.x)
+
+#################
+### collect information about each line
+l_cnt = []
+l_exc = []
+l_grad = []
+l_type = []
+l_shift = []
+l_slope = []
+for ci in range(lcnt_v.size):
+  ii = lcnt==lcnt_v[ci]
+  l_cnt.append(lcnt_v[ci])
+  l_exc.append(exc[ii][0])
+  l_grad.append(grad[ii][0])
+  l_type.append(ltype[ii][0])
+  l_shift.append(pars[ci])
+  ti = numpy.where(ltype_v == ltype[ii][0])[0]
+  l_slope.append(pars[N + ti])
+
+#################
+### plot
+
+cols='rgbcmyk'
+for i in range(len(l_cnt)):
+  ii = lcnt==l_cnt[i]
+  t = l_type[i]
+  c = cols[t%len(cols)]
+
+  ax[0].plot(xx[ii], yy[ii], c+'.')
+  ax[1].plot(l_exc[i], l_slope[i], c+'*')
+  ax[2].plot(l_exc[i], l_shift[i], c+'*')
+
+for i in range(len(l_cnt)):
+  ii = lcnt==l_cnt[i]
+  x1 = [numpy.min(xx[ii]), numpy.max(xx[ii])]
+  y1 = (x1-l_shift[i])*l_slope[i]
+  ax[0].plot(x1, y1, 'k-')
+
+
+#  ax[1].errorbar(exc[ii],p0[ii],p0e[ii], fmt= c+'*')
+#  ax[2].errorbar(exc[ii],p1[ii],p1e[ii], fmt= c+'*')
+#  ax[2].plot(exc[ii],x0[ii], c+'*')
+
+# ax[0].set_xlim([0,0.5])
+plt.savefig(args.pref+".png")
+
+#################
+### save results
+numpy.savetxt(args.pref+".dat", numpy.column_stack((l_cnt,l_exc,l_grad,l_type,l_shift,l_slope)),
+  header = "cnt -- exc -- grad -- type -- shift -- slope",
+  fmt='%d %.2f %.2f  %d  %e %e')
+
