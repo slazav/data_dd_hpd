@@ -71,10 +71,6 @@ def minfunc(pars, x,y,lcnt,ltype):
 ## Read data.
 ## Format of list file:
 ##  * filename, path from --datadir
-##  * classification, default 0
-##  * power, default 0.5 (multiply values by exc^power)
-##    use 0.5 is for low-temp signals, -0.5 for high-temp ones
-##  * quality, default 0 (skip points with peak/base ratio < q)
 exc   = numpy.array([])
 grad  = numpy.array([])
 xx    = numpy.array([])
@@ -85,9 +81,11 @@ lcnt  = numpy.array([], dtype=int)
 # default values
 def_type = 0
 def_qual = 0
-def_pwr  = -0.5
+def_pwr  = 0.5
 def_ymin = -math.inf
 def_ymax = +math.inf
+def_xmin = -math.inf
+def_xmax = +math.inf
 
 n=0
 for l in open(args.lfile):
@@ -101,24 +99,34 @@ for l in open(args.lfile):
   pwr  = def_pwr
   ymin = def_ymin
   ymax = def_ymax
+  xmin = def_xmin
+  xmax = def_xmax
 
   # parse arguments
   for i in range(1, len(tmp)):
     mm = re.search("^([a-z0-9_]+)=(.*)", tmp[i], re.IGNORECASE)
     if not mm:
       print("Error: can't parse argument: ", tmp[i])
-      continue
-    if mm.group(1) == 'type': t    = int(mm.group(2))
-    if mm.group(1) == 'qual': qual = float(mm.group(2))
-    if mm.group(1) == 'pwr':  pwr  = float(mm.group(2))
-    if mm.group(1) == 'ymin': ymin = float(mm.group(2))
-    if mm.group(1) == 'ymax': ymax = float(mm.group(2))
+      exit(1)
+    v = mm.group(2)
+    if mm.group(1) == 'type': t    = int(v)
+    elif mm.group(1) == 'qual': qual = float(v)
+    elif mm.group(1) == 'pwr':  pwr  = float(v)
+    elif mm.group(1) == 'ymin': ymin = float(v)
+    elif mm.group(1) == 'ymax': ymax = float(v)
+    elif mm.group(1) == 'xmin': xmin = float(v)
+    elif mm.group(1) == 'xmax': xmax = float(v)
+    else:
+      print("Error: unknown setting: ", tmp[i])
+      exit(1)
   if tmp[0] == 'set': # set defaults
     def_type = t
     def_qual = qual
     def_pwr  = pwr
     def_ymin = ymin
     def_ymax = ymax
+    def_xmin = xmin
+    def_xmax = xmax
     continue
 
   fname = tmp[0]
@@ -127,7 +135,7 @@ for l in open(args.lfile):
   mm = re.search("([0-9]+)_([0-9\.]+)_(\s*[0-9\.-]+)_([a-z]*).dat$", fname, re.IGNORECASE)
   if not mm:
     print("Error: can't parse fname: ", fname)
-    continue
+    exit(1)
   e = float(mm.group(2))
   g = float(mm.group(3))
 
@@ -141,6 +149,8 @@ for l in open(args.lfile):
 
   # skip ymin/ymax
   jj = numpy.logical_and(y>=ymin, y<=ymax)
+  jj = numpy.logical_and(jj, x>=xmin)
+  jj = numpy.logical_and(jj, x<=xmax)
   if not numpy.all(jj):
     x = x[jj]
     y = y[jj]
@@ -164,12 +174,25 @@ N = lcnt_v.size
 M = ltype_v.size
 pars = numpy.ones(N+M)
 
-for ci in range(lcnt_v.size):
+### initial guess
+# 3 steps:
+# - feat each line with linear function
+# - average slope for each type
+# - fit again with fixed slope
+tmp_n=numpy.zeros(M)
+for ci in range(N):
   ii = lcnt==lcnt_v[ci]
   pp = numpy.polyfit(xx[ii],yy[ii], 1)
-  pars[ci] = -pp[1]/pp[0]
   ti = numpy.where(ltype_v == ltype[ii][0])[0]
-  pars[N+ti] = pp[0]
+  pars[N+ti] += pp[0]
+  tmp_n[ti] += 1.0
+for ti in range(M):
+  pars[N+ti] /= tmp_n[ti]
+  print('%d -- %f' %(ti, pars[N+ti]))
+for ci in range(N):
+  ii = lcnt==lcnt_v[ci]
+  ti = numpy.where(ltype_v == ltype[ii][0])[0]
+  pars[ci] = numpy.mean(xx[ii]-yy[ii]/pars[N+ti])
 
 res = scipy.optimize.minimize(minfunc, pars, (xx,yy,lcnt,ltype),
    options={'disp': False, 'maxiter': 10000})
@@ -196,22 +219,32 @@ for ci in range(lcnt_v.size):
 #################
 ### plot
 
-cols='rgbcmyk'
+# plot color points
+cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
 for i in range(len(l_cnt)):
   ii = lcnt==l_cnt[i]
   t = l_type[i]
   c = cols[t%len(cols)]
+  #c = "C%d"%((t)%10)
 
   ax[0].plot(xx[ii], yy[ii], c+'.')
-#  ax[1].plot(l_exc[i], l_slope[i], c+'*')
   ax[2].plot(l_exc[i], l_shift[i], c+'*')
   ax[1].plot(l_grad[i], l_shift[i], c+'*')
 
+# plot black lines
 for i in range(len(l_cnt)):
   ii = lcnt==l_cnt[i]
   x1 = [numpy.min(xx[ii]), numpy.max(xx[ii])]
   y1 = (x1-l_shift[i])*l_slope[i]
   ax[0].plot(x1, y1, 'k-')
+
+for ti in range(len(ltype_v)):
+  ii = ltype==ltype_v[ti]
+  im = numpy.argmax(xx[ii])
+  sl = pars[N+ti]
+  ax[0].text(xx[ii][im]+0.005, yy[ii][im]+0.01, "%.2f"%(sl),
+    rotation=0, va='bottom', ha='right',
+    bbox=dict(alpha=0.5, fc=(0.9,0.9,0.9),ec='None'))
 
 
 #  ax[1].errorbar(exc[ii],p0[ii],p0e[ii], fmt= c+'*')
@@ -220,8 +253,8 @@ for i in range(len(l_cnt)):
 
 # ax[0].set_xlim([0,0.5])
 pref, e = os.path.splitext(args.lfile)
-#ax[0].set_xlim([-1.1,-0.8])
-#ax[0].set_ylim([0,1.2])
+#ax[0].set_xlim([-0.4,0])
+#ax[0].set_ylim([0,1])
 plt.savefig(pref+".png")
 
 #################
