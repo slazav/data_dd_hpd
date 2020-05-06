@@ -1,0 +1,93 @@
+set pwr=0.5
+
+20180701c_exc/001_0.80_-8_h.dat type=5
+20180701c_exc/001_0.80_-8_ht.dat type=0
+
+20180701c_exc/001_0.82_-8_h.dat type=5
+20180701c_exc/001_0.82_-8_ht.dat type=4
+
+20180701c_exc/001_0.84_-8_h.dat type=5
+20180701c_exc/001_0.84_-8_ht.dat type=4
+
+20180701c_exc/001_0.86_-8_h.dat type=5
+20180701c_exc/001_0.86_-8_ht.dat type=4
+
+20180701c_exc/001_0.88_-8_ht.dat type=4
+20180701c_exc/001_0.90_-8_ht.dat type=4
+20180701c_exc/001_0.92_-8_ht.dat type=4
+20180701c_exc/001_0.94_-8_ht.dat type=4
+20180701c_exc/001_0.96_-8_h.dat type=4
+20180701c_exc/001_0.98_-8_ht.dat type=4
+20180701c_exc/001_1.00_-8_ht.dat type=4
+20180701c_exc/001_1.02_-8_h.dat type=4
+
+20180701c_exc/001_1.04_-8_h.dat type=4
+20180701c_exc/001_1.04_-8_hs.dat type=6
+
+20180701c_exc/001_1.06_-8_h.dat type=4
+20180701c_exc/001_1.06_-8_ht.dat type=0
+
+20180701c_exc/001_1.08_-8_h.dat type=6
+20180701c_exc/001_1.08_-8_hh.dat type=4
+20180701c_exc/001_1.08_-8_ht.dat type=0
+
+20180701c_exc/001_1.10_-8_h.dat type=4
+20180701c_exc/001_1.10_-8_hs.dat type=6
+20180701c_exc/001_1.10_-8_ht.dat type=0
+
+20180701c_exc/001_1.12_-8_h.dat type=4
+20180701c_exc/001_1.12_-8_hs.dat type=6
+20180701c_exc/001_1.12_-8_ht.dat type=0
+
+20180701c_exc/001_1.14_-8_h.dat type=4
+20180701c_exc/001_1.14_-8_ht.dat type=0
+
+20180701c_exc/001_1.16_-8_h.dat type=4
+20180701c_exc/001_1.16_-8_ht.dat type=0
+
+20180701c_exc/001_1.18_-8_h.dat type=4
+20180701c_exc/001_1.18_-8_ht.dat type=0
+
+20180701c_exc/001_1.20_-8_h.dat type=4
+20180701c_exc/001_1.20_-8_hh.dat type=1
+20180701c_exc/001_1.20_-8_ht.dat type=0
+
+20180701c_exc/001_1.22_-8_h.dat type=4
+20180701c_exc/001_1.22_-8_hh.dat type=1
+20180701c_exc/001_1.22_-8_hs.dat type=2
+20180701c_exc/001_1.22_-8_ht.dat type=0
+
+20180701c_exc/001_1.24_-8_h.dat type=4
+20180701c_exc/001_1.24_-8_hh.dat type=1
+20180701c_exc/001_1.24_-8_hs.dat type=2
+
+20180701c_exc/001_1.26_-8_h.dat type=4
+20180701c_exc/001_1.26_-8_hh.dat type=1
+20180701c_exc/001_1.26_-8_hs.dat type=2
+20180701c_exc/001_1.26_-8_ht.dat type=0
+
+20180701c_exc/001_1.28_-8_h.dat type=4
+20180701c_exc/001_1.28_-8_hh.dat type=1
+20180701c_exc/001_1.28_-8_hs.dat type=2
+20180701c_exc/001_1.28_-8_ht.dat type=0
+20180701c_exc/001_1.28_-8_hu.dat type=7
+
+20180701c_exc/001_1.30_-8_h.dat type=4
+20180701c_exc/001_1.30_-8_hh.dat type=1
+20180701c_exc/001_1.30_-8_hs.dat type=2
+20180701c_exc/001_1.30_-8_ht.dat type=0
+
+20180701c_exc/001_1.32_-8_h.dat type=4
+20180701c_exc/001_1.32_-8_hh.dat type=1
+20180701c_exc/001_1.32_-8_hs.dat type=2
+20180701c_exc/001_1.32_-8_ht.dat type=0
+
+20180701c_exc/001_1.34_-8_h.dat type=4
+20180701c_exc/001_1.34_-8_hh.dat type=1
+20180701c_exc/001_1.34_-8_hs.dat type=2
+20180701c_exc/001_1.34_-8_ht.dat type=0
+
+20180701c_exc/001_1.36_-8_h.dat type=4
+20180701c_exc/001_1.36_-8_hh.dat type=1
+20180701c_exc/001_1.36_-8_hs.dat type=2
+20180701c_exc/001_1.36_-8_ht.dat type=0

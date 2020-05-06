@@ -1,0 +1,38 @@
+set pwr=-0.5
+
+20180701d_exc/001_0.70_-8_hs.dat type=5
+20180701d_exc/001_0.70_-8_ht.dat type=0
+
+20180701d_exc/001_0.90_-8_hs.dat type=5
+20180701d_exc/001_0.90_-8_ht.dat type=0
+20180701d_exc/001_0.90_-8_hu.dat type=7
+
+20180701d_exc/001_1.10_-8_h.dat type=2
+20180701d_exc/001_1.10_-8_hh.dat type=1
+20180701d_exc/001_1.10_-8_hs.dat type=4
+20180701d_exc/001_1.10_-8_ht.dat type=0
+
+20180701d_exc/001_1.30_-8_h.dat type=2
+20180701d_exc/001_1.30_-8_hh.dat type=1
+20180701d_exc/001_1.30_-8_hs.dat type=4
+20180701d_exc/001_1.30_-8_ht.dat type=0
+
+20180701d_exc/001_1.50_-8_h.dat type=0
+20180701d_exc/001_1.70_-8_h.dat type=2
+
+20180701d_exc/001_1.70_-8_hh.dat type=1
+20180701d_exc/001_1.70_-8_hs.dat type=4
+20180701d_exc/001_1.70_-8_ht.dat type=0
+
+20180701d_exc/001_1.90_-8_h.dat type=0
+20180701d_exc/001_1.90_-8_hs.dat type=2
+20180701d_exc/001_1.90_-8_ht.dat type=1
+
+20180701d_exc/001_2.10_-8_hh.dat type=1
+20180701d_exc/001_2.10_-8_hs.dat type=2
+20180701d_exc/001_2.10_-8_ht.dat type=0
+
+20180701d_exc/001_2.30_-8_h.dat type=2
+
+20180701d_exc/001_2.50_-8_h.dat type=0
+20180701d_exc/001_2.50_-8_hs.dat type=1

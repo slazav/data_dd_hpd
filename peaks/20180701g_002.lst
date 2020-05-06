@@ -1,0 +1,13 @@
+set pwr=-0.5
+20180701g_temp/002_0.80_-8_h.dat type=4
+20180701g_temp/002_0.80_-8_x.dat type=6
+20180701g_temp/002_1.20_-10_h.dat type=5
+20180701g_temp/002_1.20_-10_ht.dat type=4
+20180701g_temp/002_1.20_-8_h.dat type=4
+
+20180701g_temp/002_1.20_-10_l.dat type=10
+20180701g_temp/002_1.20_-8_l.dat type=10 xmax=0.44
+
+20180701g_temp/002_1.20_-10_ls.dat type=11
+20180701g_temp/002_1.20_-8_ls.dat type=11
+20180701g_temp/002_1.20_-8_lx.dat type=12

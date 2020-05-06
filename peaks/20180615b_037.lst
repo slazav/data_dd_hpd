@@ -1,0 +1,8 @@
+set pwr=0 qual=0
+#20180615b_temp_exc/037_0.80_-8_h.dat type=4
+20180615b_temp_exc/037_0.80_-8_ht.dat type=0
+
+20180615b_temp_exc/037_1.00_-8_h.dat type=4
+20180615b_temp_exc/037_1.00_-8_hh.dat type=0
+
+20180615b_temp_exc/037_1.20_-8_ht.dat type=0

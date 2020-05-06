@@ -1,0 +1,10 @@
+set pwr=-0.5
+20180615b_temp_exc/026_0.80_-8_l.dat type=10
+20180615b_temp_exc/026_1.00_-8_l.dat type=10
+20180615b_temp_exc/026_1.20_-8_l.dat type=10
+
+set pwr=-0.5
+20180615b_temp_exc/026_0.80_-8_h.dat type=4
+20180615b_temp_exc/026_1.00_-8_h.dat type=4
+20180615b_temp_exc/026_1.20_-8_h.dat type=4
+

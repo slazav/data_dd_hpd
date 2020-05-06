@@ -1,0 +1,9 @@
+set pwr=0.5
+set qual=3
+20180612b_test_grad/001_1.20_-4_ht.dat type=0
+20180612b_test_grad/001_1.20_-6_h.dat  type=4
+20180612b_test_grad/001_1.20_-6_ht.dat type=0
+20180612b_test_grad/001_1.20_-8_h.dat  type=4
+20180612b_test_grad/001_1.20_-8_hh.dat type=1
+20180612b_test_grad/001_1.20_-8_hs.dat type=2
+20180612b_test_grad/001_1.20_-8_ht.dat type=0

@@ -1,0 +1,14 @@
+left     0  -1.4  blue
+center-1 1  -1.1  orange -- largest slope
+center-2 2        green
+center-3 3        red
+right-1  4        violet -- largest slope
+right-2  5        brown  -- with l!
+right-3  6        pink
+
+7 black
+8 yellow
+9 light blue
+
+l        10       red
+ls       11       green (dark)

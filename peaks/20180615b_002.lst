@@ -1,0 +1,10 @@
+set pwr=-0.5 qual=3
+20180615b_temp_exc/002_0.80_-8_h.dat  type=5
+20180615b_temp_exc/002_0.80_-8_hh.dat type=2
+20180615b_temp_exc/002_0.80_-8_ht.dat type=4
+
+20180615b_temp_exc/002_1.00_-8_ha.dat type=1
+20180615b_temp_exc/002_1.00_-8_h.dat type=5
+20180615b_temp_exc/002_1.00_-8_hs.dat type=6
+20180615b_temp_exc/002_1.00_-8_ht.dat type=2
+20180615b_temp_exc/002_1.00_-8_hu.dat type=0

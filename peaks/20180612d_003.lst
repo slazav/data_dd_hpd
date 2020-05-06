@@ -1,0 +1,39 @@
+set pwr=0.5
+20180612d_temp_grad/003_0.80_-5_ht.dat type=0
+
+20180612d_temp_grad/003_0.80_-6_ht.dat type=0
+
+20180612d_temp_grad/003_0.80_-7_h.dat type=4
+20180612d_temp_grad/003_0.80_-7_ht.dat type=0
+
+20180612d_temp_grad/003_0.80_-8_h.dat type=4
+20180612d_temp_grad/003_0.80_-8_ht.dat type=0
+
+20180612d_temp_grad/003_0.80_-9_h.dat type=4
+20180612d_temp_grad/003_0.80_-9_ht.dat type=0
+
+20180612d_temp_grad/003_1.00_-5_ht.dat type=2
+20180612d_temp_grad/003_1.00_-5_l.dat type=10
+
+20180612d_temp_grad/003_1.00_-6_ht.dat type=2
+20180612d_temp_grad/003_1.00_-6_l.dat type=10
+
+20180612d_temp_grad/003_1.00_-7_l.dat type=10 pwr=-0.5
+20180612d_temp_grad/003_1.00_-8_ht.dat type=2
+
+20180612d_temp_grad/003_1.00_-8_l.dat type=10 pwr=-0.5
+
+20180612d_temp_grad/003_1.00_-9_ht.dat type=2
+20180612d_temp_grad/003_1.00_-9_l.dat type=10 pwr=-0.5
+
+20180612d_temp_grad/003_1.40_-5_h.dat type=0
+
+20180612d_temp_grad/003_1.40_-7_h.dat type=1
+20180612d_temp_grad/003_1.40_-7_hh.dat type=2
+20180612d_temp_grad/003_1.40_-7_ht.dat type=0
+
+20180612d_temp_grad/003_1.40_-8_h.dat type=2
+20180612d_temp_grad/003_1.40_-8_hh.dat type=1
+20180612d_temp_grad/003_1.40_-8_ht.dat type=0
+
+20180612d_temp_grad/003_1.40_-9_ht.dat type=0

@@ -1,0 +1,20 @@
+set pwr=0.5
+20180612d_temp_grad/001_1.40_-5_ht.dat type=0
+
+20180612d_temp_grad/001_1.40_-6_h.dat type=4
+20180612d_temp_grad/001_1.40_-6_hh.dat type=1
+20180612d_temp_grad/001_1.40_-6_ht.dat type=0
+20180612d_temp_grad/001_1.40_-6_hx.dat type=2
+
+20180612d_temp_grad/001_1.40_-7_h.dat type=2
+20180612d_temp_grad/001_1.40_-7_hh.dat type=1
+20180612d_temp_grad/001_1.40_-7_ht.dat type=0
+20180612d_temp_grad/001_1.40_-7_hx.dat type=4
+
+20180612d_temp_grad/001_1.40_-8_h.dat type=2
+20180612d_temp_grad/001_1.40_-8_hh.dat type=1
+20180612d_temp_grad/001_1.40_-8_ht.dat type=0
+20180612d_temp_grad/001_1.40_-8_hx.dat type=4
+
+20180612d_temp_grad/001_1.40_-9_h.dat type=1
+20180612d_temp_grad/001_1.40_-9_ht.dat type=0

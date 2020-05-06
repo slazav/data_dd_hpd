@@ -1,0 +1,4 @@
+set pwr=-0.5
+20180615b_temp_exc/014_1.00_-8_h.dat type=5
+20180615b_temp_exc/014_1.20_-8_h.dat type=5
+20180615b_temp_exc/014_1.20_-8_l.dat type=10 pwr=-0.5 xmax=-0.77

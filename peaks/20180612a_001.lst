@@ -1,0 +1,30 @@
+set pwr=0.5 qual=3
+20180612a_test_amp/001_0.70_-8_ht.dat type=4
+20180612a_test_amp/001_0.70_-8_l.dat  type=10 pwr=-0.5
+
+20180612a_test_amp/001_0.80_-8_ht.dat type=4
+
+20180612a_test_amp/001_1.00_-8_ht.dat type=4
+
+20180612a_test_amp/001_1.20_-8_h.dat  type=4
+20180612a_test_amp/001_1.20_-8_ht.dat type=0
+
+20180612a_test_amp/001_1.40_-8_h.dat  type=4
+20180612a_test_amp/001_1.40_-8_hs.dat type=2
+20180612a_test_amp/001_1.40_-8_ht.dat type=0
+
+20180612a_test_amp/001_1.60_-8_h.dat  type=4
+20180612a_test_amp/001_1.60_-8_hh.dat type=1
+20180612a_test_amp/001_1.60_-8_hs.dat type=2
+20180612a_test_amp/001_1.60_-8_ht.dat type=0
+
+20180612a_test_amp/001_1.80_-8_hh.dat type=1
+20180612a_test_amp/001_1.80_-8_hs.dat type=2
+20180612a_test_amp/001_1.80_-8_ht.dat type=0
+
+20180612a_test_amp/001_2.00_-8_hh.dat type=1
+20180612a_test_amp/001_2.00_-8_hs.dat type=2
+20180612a_test_amp/001_2.00_-8_ht.dat type=0
+
+20180612a_test_amp/001_2.20_-8_h.dat  type=2
+20180612a_test_amp/001_2.20_-8_ht.dat type=1

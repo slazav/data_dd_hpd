@@ -1,0 +1,16 @@
+datadir=../hpd_modes2
+
+for d in $datadir/2018*; do
+  [ -d "$d" ] || continue
+  d1=${d##*/}
+  nm=${d1%%_*}
+  echo "$nm"
+
+  for f in $d/*.dat; do
+    [ -f "$f" ] || continue
+    f1=${f##*/}
+    num=${f1%%_*}
+    echo " $num"
+    echo "$d1/$f1 type=0" >> ${nm}_${num}.lst
+  done
+done
