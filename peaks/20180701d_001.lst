@@ -1,9 +1,9 @@
 set pwr=-0.5
 
-20180701d_exc/001_0.70_-8_hs.dat type=5
+20180701d_exc/001_0.70_-8_hs.dat type=4
 20180701d_exc/001_0.70_-8_ht.dat type=0
 
-20180701d_exc/001_0.90_-8_hs.dat type=5
+20180701d_exc/001_0.90_-8_hs.dat type=4
 20180701d_exc/001_0.90_-8_ht.dat type=0
 20180701d_exc/001_0.90_-8_hu.dat type=7
 
