@@ -42,7 +42,6 @@ for l in open(args.modfile):
 
 # select all mode pairs in each file
 for fpref in sorted(files):
-  print(fpref, files[fpref]['ttc'])
   for m1 in files[fpref]['modes']:
     for m2 in files[fpref]['modes']:
       if m2['t'] <= m1['t']: continue

@@ -25,6 +25,7 @@ LISTS=\
 all: $(patsubst %,%.mod,${LISTS}) $(patsubst %,%.tab,${LISTS}) $(patsubst %,%.dif,${LISTS})
 
 clean:
-	rm -f *.tab *.mod *.png
+	rm -rf *.dat
+	rm -f *.tab *.mod *.dif
 
 
