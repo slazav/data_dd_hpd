@@ -30,9 +30,6 @@ xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
 parser = argparse.ArgumentParser()
 parser.add_argument('lstfile')
 
-parser.add_argument('--skip', default='',
-                    help='skip points (1-2,30-40,5)')
-
 args = parser.parse_args()
 #########################################
 
@@ -42,9 +39,9 @@ if not os.path.isfile(args.lstfile):
 
 pref, e = os.path.splitext(args.lstfile)
 
-os.makedirs(pref, exist_ok=True)
-outt = open(pref + '/table.dat', 'w')
-outm = open(pref + '/modes.dat', 'w')
+outt = open(pref + '.tab', 'w')
+outm = open(pref + '.mod', 'w')
+os.makedirs(pref + '.png', exist_ok=True) # for png files
 
 print("# file - time - grad - quad - exc - ttc - didt" +
        " - ref_t - larm_t - t_x0 - t_x - t_l - t_h - t_y", file=outt)
@@ -55,6 +52,7 @@ print("# file - type - name - grad - exc - ttc - xl - xr - xc - yc - sl - sl_e",
 # read parameters from *.lst file
 files = {}
 for l in open(args.lstfile):
+  if l[0] == '#': continue
   tmp = l.split()
   if len(tmp) < 5: continue
   fpref = tmp[0]
@@ -146,6 +144,9 @@ for fpref in sorted(files):
     if name[0]=='l': k=10
     plt.plot(x,y*k, '.')
 
+  sc = 0
+  sc_w = 0
+
   for n in peaks:
     if n == 'L': continue
     if not n in files[fpref]:
@@ -190,7 +191,7 @@ for fpref in sorted(files):
     plt.plot(xx, k*((sl-sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
     plt.plot(xx, k*((sl+sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
 
-    plt.text(xr+0.01, k*numpy.polyval(p,xr), n)
+    plt.text(xr+0.002, k*numpy.polyval(p,xr), "%d(%s)"%(t,n))
     plt.plot(xc,k*yc, 'ko', markersize=8)
     plt.plot(xc,k*yc, 'ro', markersize=6)
     print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f" %\
@@ -200,9 +201,23 @@ for fpref in sorted(files):
       float(inf.get('temp_corr', math.nan))/tc,
       xl,xr,xc,yc, sl, sl_e), file=outm)
 
+    k = 0
+    if t==0: k = 1
+    if t==1: k = 1.656
+    if t==2: k = 1.140
+    if t==3: k = 1.206
+    if t==4: k = 0.560
+    if t==5: k = 0.542
+    if k>0:
+      sc+=1/sl/sl_e**2
+      sc_w+=1/sl_e**2
+
+  if sc_w>0: sc = sc/sc_w
+  print(sc)
+
   plt.title(fpref)
   plt.xlabel('frequency shift, kHz')
   plt.ylabel('peak frequency squared, kHz^2')
-  plt.savefig(pref + '/' + fpref + '.png')
+  plt.savefig(pref + '.png/' + fpref + '.png')
 
 
