@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# Read *.lst files with all files and mode classification
-# For each of lists write following files:
+# Read *.lst file with all files, mode classification, fit parameters
+# write following files:
 #  - */table.dat: table with file parameters (temperature etc.)
 #  - */modes.dat: table with mode parameters (slope, shift, etc.)
 #  - */mdiff.dat: table with mode differences (slope ratio, relative shift)
@@ -17,192 +17,192 @@ import argparse
 
 #########################################
 #### some constants
- 
+
 tc = 2.372743e-3                 # Tc at 25.7 bar [K]
 dfdi=405.886*20378/(2*3.1415926) # convert NMR current to frequency [Hz/A]
 nmr_i0 = 0.86675                 # reference NMR current [A]
 ires = 5e-6                      # main source of error: power supply resolution, 5uA
 xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
 
+################################
+# Single argument: list file
+
+parser = argparse.ArgumentParser()
+parser.add_argument('lstfile')
+
+parser.add_argument('--skip', default='',
+                    help='skip points (1-2,30-40,5)')
+
+args = parser.parse_args()
 #########################################
-basedir = '.'
 
-for f in os.listdir(basedir):
+if not os.path.isfile(args.lstfile):
+  print("Error: file not found: %s" %(args.lstfile))
+  exit(1)
 
-  fname=os.path.join(basedir, f)
-  if not os.path.isfile(fname): continue
-  pref, e = os.path.splitext(fname)
-  if e != '.lst': continue
+pref, e = os.path.splitext(args.lstfile)
 
-  os.makedirs(pref, exist_ok=True)
-  outt = open(pref + '/table.dat', 'w')
-  outm = open(pref + '/modes.dat', 'w')
+os.makedirs(pref, exist_ok=True)
+outt = open(pref + '/table.dat', 'w')
+outm = open(pref + '/modes.dat', 'w')
 
-  print("# file - time - grad - quad - exc - ttc - didt" +
-         " - ref_t - larm_t - t_x0 - t_x - t_l - t_h - t_y", file=outt)
-  print("# file - type - name - grad - exc - ttc - xl - xr - xc - yc - sl - sl_e", file=outm)
+print("# file - time - grad - quad - exc - ttc - didt" +
+       " - ref_t - larm_t - t_x0 - t_x - t_l - t_h - t_y", file=outt)
+print("# file - type - name - grad - exc - ttc - xl - xr - xc - yc - sl - sl_e", file=outm)
 
-  ############################################
-  ############################################
-  # read parameters from *.lst file
-  files = {}
-  for l in open(fname):
-    tmp = l.split()
-    if len(tmp) < 5: continue
-    fpref = tmp[0]
-    name  = tmp[4]
-    mode={}
+############################################
+############################################
+# read parameters from *.lst file
+files = {}
+for l in open(args.lstfile):
+  tmp = l.split()
+  if len(tmp) < 5: continue
+  fpref = tmp[0]
+  name  = tmp[4]
+  mode={}
 
-    # parse parameters
-    for i in range(5, len(tmp)):
-      mm = re.search("^([a-z0-9_]+)=(.*)", tmp[i], re.IGNORECASE)
-      if not mm:
-        print("Error: can't parse argument: ", tmp[i])
-        exit(1)
-      v = mm.group(2)
-      if mm.group(1) in ('type', 'qual', 'ymin', 'ymax', 'xmin', 'xmax'):
-        mode[mm.group(1)] = float(mm.group(2))
-      else:
-        print("Error: unknown setting: ", tmp[i])
-        exit(1)
-
-    if not 'type' in mode:
-      print("Error: type is not set for %s/%s" %(pref,fpref))
+  # parse parameters
+  for i in range(5, len(tmp)):
+    mm = re.search("^([a-z0-9_]+)=(.*)", tmp[i], re.IGNORECASE)
+    if not mm:
+      print("Error: can't parse argument: ", tmp[i])
+      exit(1)
+    v = mm.group(2)
+    if mm.group(1) in ('type', 'qual', 'ymin', 'ymax', 'xmin', 'xmax'):
+      mode[mm.group(1)] = float(mm.group(2))
+    else:
+      print("Error: unknown setting: ", tmp[i])
       exit(1)
 
-    if fpref not in files: files[fpref] = {}
-    files[fpref][name]  = mode
+  if not 'type' in mode:
+    print("Error: type is not set for %s/%s" %(pref,fpref))
+    exit(1)
 
-  ############################################
-  ############################################
-  ## for each file
-  for fpref in sorted(files):
-    full_pref = '../hpd_modes/' + pref + '/' + fpref
-    inf  = json.load(open(full_pref + '.inf'))
-    inff = json.load(open(full_pref + '.inff'))
+  if fpref not in files: files[fpref] = {}
+  files[fpref][name]  = mode
 
-    nmr_t, nmr_i, nmr_x, nmr_y =\
-      numpy.loadtxt(full_pref + '.nmr1', unpack=True)
-    t0 = float(inf.get('t1abs', 0))
+############################################
+############################################
+## for each file
+for fpref in sorted(files):
+  full_pref = '../hpd_modes/' + pref + '/' + fpref
+  inf  = json.load(open(full_pref + '.inf'))
+  inff = json.load(open(full_pref + '.inff'))
 
-    ###############################
-    ##  print file table (*.tab)
-    print(("%-30s %.7f %6.2f %6.2f %4.2f %5.3f %6.2f"+\
-       "   %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f") %\
-      (fpref,
-       float(inf.get('t1abs', math.nan)),
-       float(inf.get('grad', math.nan))*1e3,
-       float(inf.get('quad', math.nan))*1e3,
-       float(inf.get('exc', math.nan)),
-       float(inf.get('temp_corr', math.nan))/tc,
-       float(inf.get('didt', math.nan)),
-       float(inff.get('ref_t', math.nan)),
-       float(inff.get('larm_t', math.nan)),
-       float(inff.get('time_x0', math.nan)),
-       float(inff.get('time_x', math.nan)),
-       float(inff.get('time_l', math.nan)),
-       float(inff.get('time_h', math.nan)),
-       float(inff.get('time_y', math.nan))), file=outt)
+  nmr_t, nmr_i, nmr_x, nmr_y =\
+    numpy.loadtxt(full_pref + '.nmr1', unpack=True)
+  t0 = float(inf.get('t1abs', 0))
 
-    ###############################
-    #### Merge peaks with same name, merge harmonics,
-    #### convert time to frequency
-    plt.clf()
-    peaks={}
-    if len(inff.get('fig_peaks',[]))<1: continue
-    for i in inff.get('fig_peaks',[]):
-      T = numpy.array(i['T'], dtype=float)
-      F = numpy.array(i['F'], dtype=float)
-      A = numpy.array(i['A'], dtype=float)
-      Q = numpy.array(i['Q'], dtype=float)
+  ###############################
+  ##  print file table (*.tab)
+  print(("%-30s %.7f %6.2f %6.2f %4.2f %5.3f %6.2f"+\
+     "   %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f") %\
+    (fpref,
+     float(inf.get('t1abs', math.nan)),
+     float(inf.get('grad', math.nan))*1e3,
+     float(inf.get('quad', math.nan))*1e3,
+     float(inf.get('exc', math.nan)),
+     float(inf.get('temp_corr', math.nan))/tc,
+     float(inf.get('didt', math.nan)),
+     float(inff.get('ref_t', math.nan)),
+     float(inff.get('larm_t', math.nan)),
+     float(inff.get('time_x0', math.nan)),
+     float(inff.get('time_x', math.nan)),
+     float(inff.get('time_l', math.nan)),
+     float(inff.get('time_h', math.nan)),
+     float(inff.get('time_y', math.nan))), file=outt)
 
-      # interpolate NMR current to peak data
-      I = numpy.interp(T, nmr_t-t0, nmr_i, math.nan, math.nan)
+  ###############################
+  #### Merge peaks with same name, merge harmonics,
+  #### convert time to frequency
+  plt.clf()
+  peaks={}
+  if len(inff.get('fig_peaks',[]))<1: continue
+  for i in inff.get('fig_peaks',[]):
+    T = numpy.array(i['T'], dtype=float)
+    F = numpy.array(i['F'], dtype=float)
+    A = numpy.array(i['A'], dtype=float)
+    Q = numpy.array(i['Q'], dtype=float)
 
-      # merge harmonics
-      name = i['name']
-      mm = re.search("^([a-z]+)([0-9]+)", name)
-      if mm:
-        name = mm.group(1)
-        F /= int(mm.group(2))
+    # interpolate NMR current to peak data
+    I = numpy.interp(T, nmr_t-t0, nmr_i, math.nan, math.nan)
 
-      # x, y, w values for fitting
-      x = - (I - nmr_i0)*dfdi * 1e-3 # [kHz]
-      y = F**2 * 1e-6                # [kHz^2]
-      prev = peaks.get(name, ([],[],[]))
-      peaks[name] =\
-        (numpy.append(prev[0], x),
-         numpy.append(prev[1], y),
-         numpy.append(prev[2], Q))
-      k=1
-      if name=='l' or name=='ls': k=10
-      plt.plot(x,y*k, '.')
+    # merge harmonics
+    name = i['name']
+    mm = re.search("^([a-z]+)([0-9]+)", name)
+    if mm:
+      name = mm.group(1)
+      F /= int(mm.group(2))
 
-    for n in peaks:
-      if n == 'L': continue
-      if not n in files[fpref]:
-        print("Error: %s not in the list %s/%s" %(n,pref,fpref))
-        exit(1)
-      pars = files[fpref][n]
+    # x, y, w values for fitting
+    x = - (I - nmr_i0)*dfdi * 1e-3 # [kHz]
+    y = F**2 * 1e-6                # [kHz^2]
+    prev = peaks.get(name, ([],[],[]))
+    peaks[name] =\
+      (numpy.append(prev[0], x),
+       numpy.append(prev[1], y),
+       numpy.append(prev[2], Q))
+    k=1
+    if name[0]=='l': k=10
+    plt.plot(x,y*k, '.')
 
-      x = peaks[n][0]
-      y = peaks[n][1]
-      q = peaks[n][2]
-      t = pars['type']
+  for n in peaks:
+    if n == 'L': continue
+    if not n in files[fpref]:
+      print("Error: %s not in the list %s/%s" %(n,pref,fpref))
+      exit(1)
+    pars = files[fpref][n]
 
-      jj = numpy.ones(x.size, dtype=bool)
-      # skip points
-      if 'qual' in pars: jj = numpy.logical_and(jj, q>pars['qual'])
-      if 'xmin' in pars: jj = numpy.logical_and(jj, x>pars['xmin'])
-      if 'xmax' in pars: jj = numpy.logical_and(jj, x<pars['xmax'])
-      if 'ymin' in pars: jj = numpy.logical_and(jj, y>pars['ymin'])
-      if 'ymax' in pars: jj = numpy.logical_and(jj, y<pars['ymax'])
-      if jj.any():
-        x = x[jj]
-        y = y[jj]
+    x = peaks[n][0]
+    y = peaks[n][1]
+    q = peaks[n][2]
+    t = pars['type']
 
-      # linear fit
-      p = numpy.polyfit(x,y,1)
+    jj = numpy.ones(x.size, dtype=bool)
+    # skip points
+    if 'qual' in pars: jj = numpy.logical_and(jj, q>pars['qual'])
+    if 'xmin' in pars: jj = numpy.logical_and(jj, x>pars['xmin'])
+    if 'xmax' in pars: jj = numpy.logical_and(jj, x<pars['xmax'])
+    if 'ymin' in pars: jj = numpy.logical_and(jj, y>pars['ymin'])
+    if 'ymax' in pars: jj = numpy.logical_and(jj, y<pars['ymax'])
+    if jj.any():
+      x = x[jj]
+      y = y[jj]
 
-      k=1
-      if n=='l' or n=='ls': k=10
-      xx = numpy.linspace(numpy.min(x),numpy.max(x))
+    # linear fit
+    p = numpy.polyfit(x,y,1)
 
-      plt.plot(x,y*k, 'k.', markersize=1)
-      plt.plot(xx, k*numpy.polyval(p,xx), 'k-', linewidth=0.5)
+    k=1
+    if n[0]=='l': k=10
+    xx = numpy.linspace(numpy.min(x),numpy.max(x))
 
-      xl = numpy.min(x)
-      xr = numpy.max(x)
-      xc = numpy.average(x)
-      yc = numpy.polyval(p,xc)
+    plt.plot(x,y*k, 'k.', markersize=1)
+    plt.plot(xx, k*numpy.polyval(p,xx), 'k-', linewidth=0.5)
 
-      sl = p[0]
-      sl_e = sl*xres/(xr-xl)/2
+    xl = numpy.min(x)
+    xr = numpy.max(x)
+    xc = numpy.average(x)
+    yc = numpy.polyval(p,xc)
 
-      plt.plot(xx, k*((sl-sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
-      plt.plot(xx, k*((sl+sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
+    sl = p[0]
+    sl_e = sl*xres/(xr-xl)/2
 
-      plt.text(xr+0.01, k*numpy.polyval(p,xr), n)
-      plt.plot(xc,k*yc, 'ko', markersize=8)
-      plt.plot(xc,k*yc, 'ro', markersize=6)
-      print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f" %\
-        (fpref, t, n,
-        float(inf.get('grad', math.nan))*1e3,
-        float(inf.get('exc', math.nan)),
-        float(inf.get('temp_corr', math.nan))/tc,
-        xl,xr,xc,yc, sl, sl_e), file=outm)
+    plt.plot(xx, k*((sl-sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
+    plt.plot(xx, k*((sl+sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
 
-    plt.title(fpref)
-    plt.xlabel('frequency shift, kHz')
-    plt.ylabel('peak frequency squared, kHz^2')
-    plt.savefig(pref + '/' + fpref + '.png')
+    plt.text(xr+0.01, k*numpy.polyval(p,xr), n)
+    plt.plot(xc,k*yc, 'ko', markersize=8)
+    plt.plot(xc,k*yc, 'ro', markersize=6)
+    print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f" %\
+      (fpref, t, n,
+      float(inf.get('grad', math.nan))*1e3,
+      float(inf.get('exc', math.nan)),
+      float(inf.get('temp_corr', math.nan))/tc,
+      xl,xr,xc,yc, sl, sl_e), file=outm)
 
-
-    ###############################
-    ## do fits and print mode table (*.mod)
-    for mode in files[fpref]:
-      print(mode)
-
-
+  plt.title(fpref)
+  plt.xlabel('frequency shift, kHz')
+  plt.ylabel('peak frequency squared, kHz^2')
+  plt.savefig(pref + '/' + fpref + '.png')
 
 
