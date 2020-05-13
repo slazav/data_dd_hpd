@@ -1,0 +1,76 @@
+#!/usr/bin/python3
+# make list of all modes in a folder
+# should not be used anymore!
+
+import json
+import os
+import os.path
+import re
+import numpy
+import math
+import matplotlib.pyplot as plt
+import scipy.optimize
+import argparse
+
+#########################################
+# get old peak classification from ../peaks/*.lst
+lst_dir='../peaks'
+lst={}
+for f in os.listdir(lst_dir):
+  fname=os.path.join(lst_dir, f)
+  if not os.path.isfile(fname): continue
+  pref, e = os.path.splitext(f)
+  if e != '.lst': continue
+  for l in open(fname):
+    mm=re.search('^(\S+).dat\s+(.*)', l)
+    if not mm: continue
+    lst[mm.group(1)] = mm.group(2)
+
+
+#########################################
+basedir = '../hpd_modes'
+
+for dd in os.listdir(basedir):
+  if not os.path.isdir(os.path.join(basedir, dd)): continue
+  mydir = basedir + '/' + dd
+
+  keys = set()
+  seq  = 1
+  outf = open(dd + '.lst', 'w')
+  for f in sorted(os.listdir(mydir)):
+    if not os.path.isfile(os.path.join(mydir, f)): continue
+    pref, e = os.path.splitext(f)
+    if e != '.inf': continue
+
+    inf  = json.load(open(mydir + '/' + pref + '.inf'))
+    inff = json.load(open(mydir + '/' + pref + '.inff'))
+
+    g = float(inf.get('grad', 0))*1e3
+    e = float(inf.get('exc', 0))
+
+    if inf['dfdt'] > 0: continue
+
+    names=set()
+    for i in inff.get('fig_peaks',[]):
+      if not 'name' in i: continue
+      name = i['name']
+      mm = re.search("^([a-z]+)([0-9]+)", name)
+      if mm: name=mm.group(1)
+      names.add(name)
+
+    key = '%04.2f_%02.0f' % (e,g)
+    if key in keys:
+      seq+=1;
+      keys.clear()
+      print("", file=outf)
+    keys.add(key)
+    sname = '%03d_%s' % (seq, key)
+
+    if len(names) < 1: continue
+
+    for n in sorted(names):
+      if name == 'L': continue
+
+      pars = lst.get(dd+'/'+sname+'_'+n, '')
+      print("%-25s %-15s %s" %(pref, sname+'_'+n, pars), file=outf)
+
