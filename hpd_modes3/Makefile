@@ -16,13 +16,11 @@ LISTS=\
   20180701d_exc\
   20180701g_temp\
 
-%.mod %.tab: %.lst fit_peaks
+%.dif %.mod %.tab: %.lst fit_peaks
 	./fit_peaks $<
 
-%.dif: %.mod fit_diff
-	./fit_diff $<
-
 all: $(patsubst %,%.mod,${LISTS}) $(patsubst %,%.tab,${LISTS}) $(patsubst %,%.dif,${LISTS})
+	cat 2018*.dif > all.dif
 
 clean:
 	rm -rf *.dat

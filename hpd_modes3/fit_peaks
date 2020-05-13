@@ -41,6 +41,7 @@ pref, e = os.path.splitext(args.lstfile)
 
 outt = open(pref + '.tab', 'w')
 outm = open(pref + '.mod', 'w')
+outd = open(pref + '.dif', 'w')
 os.makedirs(pref + '.dat', exist_ok=True) # for png files
 
 print("# file - time - grad - quad - exc - ttc - didt" +
@@ -48,36 +49,64 @@ print("# file - time - grad - quad - exc - ttc - didt" +
 print("# file - type - name - grad - exc - ttc - xl - xr - xc - yc - sl - sl_e", file=outm)
 
 ############################################
+def parse_pars(pars, allowed, defaults = {}):
+  ret = defaults.copy()
+  for i in range(len(pars)):
+    mm = re.search("^([a-z0-9_]+)=(.*)", pars[i], re.IGNORECASE)
+    if not mm:
+      print("Error: can't parse parameter: ", pars[i])
+      exit(1)
+    v = mm.group(2)
+    if mm.group(1) in allowed:
+      ret[mm.group(1)] = float(mm.group(2))
+    else:
+      print("Error: unknown setting: ", pars[i])
+      exit(1)
+  return ret
+
+############################################
 ############################################
 # read parameters from *.lst file
 files = {}
+def_pars = {}
+par_names = ('type', 'qual', 'ymin', 'ymax', 'xmin', 'xmax')
+xlim = ()
+ylim = ()
+xlims = {}
+ylims = {}
+
 for l in open(args.lstfile):
   if l[0] == '#': continue
   tmp = l.split()
+  if len(tmp)>0 and tmp[0] == 'set':
+    def_pars =  pars = parse_pars(tmp[1:], par_names)
+    continue;
+
+  if len(tmp)>0 and tmp[0] == 'xlim':
+    if len(tmp)>2: xlim = (float(tmp[1]),float(tmp[2]))
+    else: xlim = ()
+    continue
+
+  if len(tmp)>0 and tmp[0] == 'ylim':
+    if len(tmp)>2: ylim = (float(tmp[1]),float(tmp[2]))
+    else: ylim = ()
+    continue
+
   if len(tmp) < 5: continue
   fpref = tmp[0]
   name  = tmp[4]
-  mode={}
 
   # parse parameters
-  for i in range(5, len(tmp)):
-    mm = re.search("^([a-z0-9_]+)=(.*)", tmp[i], re.IGNORECASE)
-    if not mm:
-      print("Error: can't parse argument: ", tmp[i])
-      exit(1)
-    v = mm.group(2)
-    if mm.group(1) in ('type', 'qual', 'ymin', 'ymax', 'xmin', 'xmax'):
-      mode[mm.group(1)] = float(mm.group(2))
-    else:
-      print("Error: unknown setting: ", tmp[i])
-      exit(1)
+  pars = parse_pars(tmp[5:], par_names, def_pars)
 
-  if not 'type' in mode:
+  if not 'type' in pars:
     print("Error: type is not set for %s/%s" %(pref,fpref))
     exit(1)
 
   if fpref not in files: files[fpref] = {}
-  files[fpref][name]  = mode
+  files[fpref][name]  = pars
+  if len(xlim)==2: xlims[fpref] = xlim
+  if len(ylim)==2: ylims[fpref] = ylim
 
 ############################################
 ############################################
@@ -89,18 +118,18 @@ for fpref in sorted(files):
 
   nmr_t, nmr_i, nmr_x, nmr_y =\
     numpy.loadtxt(full_pref + '.nmr1', unpack=True)
+
   t0 = float(inf.get('t1abs', 0))
+  grad = float(inf.get('grad', math.nan))*1e3
+  quad = float(inf.get('quad', math.nan))*1e3
+  exc  = float(inf.get('exc',  math.nan))
+  ttc  = float(inf.get('temp_corr', math.nan))/tc
 
   ###############################
   ##  print file table (*.tab)
   print(("%-30s %.7f %6.2f %6.2f %4.2f %5.3f %6.2f"+\
      "   %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f") %\
-    (fpref,
-     float(inf.get('t1abs', math.nan)),
-     float(inf.get('grad', math.nan))*1e3,
-     float(inf.get('quad', math.nan))*1e3,
-     float(inf.get('exc', math.nan)),
-     float(inf.get('temp_corr', math.nan))/tc,
+    (fpref, t0, grad, quad, exc, ttc,
      float(inf.get('didt', math.nan)),
      float(inff.get('ref_t', math.nan)),
      float(inff.get('larm_t', math.nan)),
@@ -132,18 +161,30 @@ for fpref in sorted(files):
       name = mm.group(1)
       F /= int(mm.group(2))
 
+    if name=='L': continue
+
     # x, y, w values for fitting
     x = - (I - nmr_i0)*dfdi * 1e-3 # [kHz]
     y = F**2 * 1e-6                # [kHz^2]
-    prev = peaks.get(name, ([],[],[]))
-    peaks[name] =\
-      (numpy.append(prev[0], x),
-       numpy.append(prev[1], y),
-       numpy.append(prev[2], Q))
-    k=1
-    if name[0]=='l': k=10
-    plt.plot(x,y*k, '.')
 
+    plot_sc=1
+    if name[0]=='l': plot_sc = 10
+
+    if not name in peaks:
+      peaks[name] =\
+        {'x': numpy.array(()),
+         'y': numpy.array(()),
+         'q': numpy.array(()),
+         't': int(files[fpref][name]['type']),
+         'plot_sc': plot_sc}
+    peaks[name]['x'] = numpy.append(peaks[name]['x'], x)
+    peaks[name]['y'] = numpy.append(peaks[name]['y'], y)
+    peaks[name]['q'] = numpy.append(peaks[name]['q'], Q)
+
+    plt.plot(x,y*plot_sc, '.')
+
+  ###############################
+  ## fit each peak
   for n in peaks:
     if n == 'L': continue
     if not n in files[fpref]:
@@ -151,10 +192,11 @@ for fpref in sorted(files):
       exit(1)
     pars = files[fpref][n]
 
-    x = peaks[n][0]
-    y = peaks[n][1]
-    q = peaks[n][2]
-    t = pars['type']
+    x = peaks[n]['x']
+    y = peaks[n]['y']
+    q = peaks[n]['q']
+    t = peaks[n]['t']
+    k = peaks[n]['plot_sc']
 
     jj = numpy.ones(x.size, dtype=bool)
     # skip points
@@ -175,25 +217,29 @@ for fpref in sorted(files):
     # linear fit
     p = numpy.polyfit(x,y,1)
 
-    k=1
-    if n[0]=='l': k=10
-    xx = numpy.linspace(numpy.min(x),numpy.max(x))
-
-    plt.plot(x,y*k, 'k.', markersize=1)
-    plt.plot(xx, k*numpy.polyval(p,xx), 'k-', linewidth=0.5)
-
     xl = numpy.min(x)
     xr = numpy.max(x)
     xc = numpy.average(x)
     yc = numpy.polyval(p,xc)
-
     sl = p[0]
-    sl_e = sl*xres/(xr-xl)/2
+
+    # error estimation: (x resolution)/(x length)
+    # this works for "good signals", without noizy points
+    sl_e1 = sl*xres/(xr-xl)/2
+
+    # estimate error from point scattering
+    sl_e2 = numpy.var(y - numpy.polyval(p,x))**0.5/(xr-xl)
+    sl_e = numpy.hypot(sl_e1, sl_e2)
+
+    # plotting
+    xx = numpy.linspace(numpy.min(x),numpy.max(x))
+    plt.plot(x,y*k, 'k.', markersize=1)
+    plt.plot(xx, k*numpy.polyval(p,xx), 'k-', linewidth=0.5)
 
     plt.plot(xx, k*((sl-sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
     plt.plot(xx, k*((sl+sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
 
-    plt.text(xr+0.002, k*numpy.polyval(p,xr), "%d(%s)"%(t,n))
+    plt.text(xr+0.002, k*numpy.polyval(p,xr), "%d(%s) %.2f %.2f"%(t,n,sl,sl_e1))
     plt.plot(xc,k*yc, 'ko', markersize=8)
     plt.plot(xc,k*yc, 'ro', markersize=6)
     print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f" %\
@@ -203,7 +249,77 @@ for fpref in sorted(files):
       float(inf.get('temp_corr', math.nan))/tc,
       xl,xr,xc,yc, sl, sl_e), file=outm)
 
+    peaks[n]['xl'] = xl
+    peaks[n]['xr'] = xr
+    peaks[n]['xc'] = xc
+    peaks[n]['yc'] = yc
+    peaks[n]['sl'] = sl
+    peaks[n]['sl_e'] = sl_e
+
+  #########################################
+  ## for each pair of modes calculate slope ratio
+  for m1 in peaks:
+    text=''
+    t1 = peaks[m1]['t']
+    s1 = peaks[m1]['sl']
+    e1 = peaks[m1]['sl_e']
+    for m2 in peaks:
+      t2 = peaks[m2]['t']
+      s2 = peaks[m2]['sl']
+      e2 = peaks[m2]['sl_e']
+
+      if t2 <= t1: continue
+      sc   = s2/s1
+      sc_e = numpy.hypot(e2/s1, e1*s2/s1**2)
+      print("%-30s %02d.%02d  %.3f %.3f %.3f  %e %e"\
+         %(fpref, t1,t2, grad, exc, ttc, sc, sc_e), file=outd)
+      text += '%d-%d: %.2f %.2f\n' %(t1,t2,sc,sc_e)
+
+    if text=='': continue
+    k1 = peaks[m1]['plot_sc']
+    x = peaks[m1]['xr']
+    y = (x - peaks[m1]['xc'])*s1 + peaks[m1]['yc']
+    plt.text(x+0.002, k1*y, text, va='top')
+
+  #########################################
+  ## calculate "signal scale", using mean mode slopes
+  scales=[1.0,1.666,1.142,1.206,0.563,0.423,0.730,0.422]
+  cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
+  sc=0
+  scw=0
+  for m1 in peaks:
+    t = peaks[m1]['t']
+    s = peaks[m1]['sl']
+    e = peaks[m1]['sl_e']
+    k = 0
+    if t<len(scales): k = scales[t]
+    if k>0:
+      w = (s/e)**2
+      sc+=s/k*w
+      scw+=w
+  if scw>0: sc/=scw
+  print(fpref, sc)
+
+  #########################################
+  ## calculate mean mode slopes for this scale
+  for m1 in peaks:
+    t = peaks[m1]['t']
+    xl = peaks[m1]['xl']
+    xr = peaks[m1]['xr']
+    xc = peaks[m1]['xc']
+    yc = peaks[m1]['yc']
+    k  = peaks[m1]['plot_sc']
+    xx=numpy.array((xl,xr))
+    k = 0
+    if t<len(scales): k = scales[t]
+    if k==0: continue
+    plt.plot(xx, sc*k*(xx-xc) + yc, cols[t%len(cols)] + '-', linewidth=3)
+
+  #########################################
+
   plt.title(fpref)
+  if fpref in xlims: plt.xlim(xlims[fpref])
+  if fpref in ylims: plt.ylim(ylims[fpref])
   plt.xlabel('frequency shift, kHz')
   plt.ylabel('peak frequency squared, kHz^2')
   plt.savefig(pref + '.dat/' + fpref + '.png')
