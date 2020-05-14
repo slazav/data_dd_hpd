@@ -24,6 +24,10 @@ nmr_i0 = 0.86675                 # reference NMR current [A]
 ires = 5e-6                      # main source of error: power supply resolution, 5uA
 xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
 
+# predefined peak scales for each type
+scales = [1, 1.754121, 1.18923901, 1.86471401, 0.57591628, 0.41354782, 0.77468421]
+cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
+
 ################################
 # Single argument: list file
 
@@ -228,6 +232,9 @@ for fpref in sorted(files):
     # error estimation: (x resolution)/(x length)
     # this works for "good signals", without noizy points
     sl_e1 = sl*xres/(xr-xl)/2
+    # it is better to use predefined slope, measured one could be 0
+    # 3 is an "slope of the type 0", it should be 2.5..4
+    if len(scales)>t: sl_e1 = 3*scales[t]*xres/(xr-xl)/2
 
     # estimate error from point scattering
     sl_e2 = numpy.var(y - numpy.polyval(p,x))**0.5/(xr-xl)
@@ -285,8 +292,6 @@ for fpref in sorted(files):
 
   #########################################
   ## calculate "signal scale", using mean mode slopes
-  scales=[1.0,1.666,1.142,1.206,0.563,0.423,0.730,0.422]
-  cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
   sc=0
   scw=0
   for m1 in peaks:
