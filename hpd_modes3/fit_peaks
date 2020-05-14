@@ -25,7 +25,7 @@ ires = 5e-6                      # main source of error: power supply resolution
 xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
 
 # predefined peak scales for each type
-scales = [1, 1.754121, 1.18923901, 1.86471401, 0.57591628, 0.41354782, 0.77468421]
+scales = [1., 1.75127657, 1.19312445, 0, 0.57616221, 0.4136422, 0.77501649]
 cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
 
 ################################
@@ -46,6 +46,7 @@ pref, e = os.path.splitext(args.lstfile)
 outt = open(pref + '.tab', 'w')
 outm = open(pref + '.mod', 'w')
 outd = open(pref + '.dif', 'w')
+outs = open(pref + '.dsh', 'w')
 os.makedirs(pref + '.dat', exist_ok=True) # for png files
 
 print("# file - time - grad - quad - exc - ttc - didt" +
@@ -131,19 +132,6 @@ for fpref in sorted(files):
   exc  = float(inf.get('exc',  math.nan))
   ttc  = float(inf.get('temp_corr', math.nan))/tc
 
-  ###############################
-  ##  print file table (*.tab)
-  print(("%-30s %.7f %6.2f %6.2f %4.2f %5.3f %6.2f"+\
-     "   %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f") %\
-    (fpref, t0, grad, quad, exc, ttc,
-     float(inf.get('didt', math.nan)),
-     float(inff.get('ref_t', math.nan)),
-     float(inff.get('larm_t', math.nan)),
-     float(inff.get('time_x0', math.nan)),
-     float(inff.get('time_x', math.nan)),
-     float(inff.get('time_l', math.nan)),
-     float(inff.get('time_h', math.nan)),
-     float(inff.get('time_y', math.nan))), file=outt)
 
   ###############################
   #### Merge peaks with same name, merge harmonics,
@@ -280,7 +268,7 @@ for fpref in sorted(files):
       if t2 <= t1: continue
       sc   = s2/s1
       sc_e = numpy.hypot(e2/s1, e1*s2/s1**2)
-      print("%-30s %02d.%02d  %.3f %.3f %.3f  %e %e"\
+      print("%-30s %02d.%02d  %.3f %.3f %.4f  %e %e"\
          %(fpref, t1,t2, grad, exc, ttc, sc, sc_e), file=outd)
       text += '%d-%d: %.2f %.2f\n' %(t1,t2,sc,sc_e)
 
@@ -308,7 +296,7 @@ for fpref in sorted(files):
   print(fpref, sc)
 
   #########################################
-  ## calculate mean mode slopes for this scale
+  ## calculate mode slopes and shifts for this scale
   for m1 in peaks:
     t = peaks[m1]['t']
     xl = peaks[m1]['xl']
@@ -317,10 +305,43 @@ for fpref in sorted(files):
     yc = peaks[m1]['yc']
     k  = peaks[m1]['plot_sc']
     xx=numpy.array((xl,xr))
-    k = 0
-    if t<len(scales): k = scales[t]
-    if k==0: continue
-    plt.plot(xx, sc*k*(xx-xc) + yc, cols[t%len(cols)] + '-', linewidth=3)
+    sl = 0
+    if t<len(scales): sl = sc*scales[t]
+    if sl==0: continue
+    peaks[m1]['sh'] = xc - yc/sl
+
+    plt.plot(xx, sl*(xx-xc) + yc, cols[t%len(cols)] + '-', linewidth=3)
+
+  #########################################
+  ## for each pair of modes calculate shift difference
+  for m1 in peaks:
+    if not 'sh' in peaks[m1]: continue
+    t1 = peaks[m1]['t']
+    s1 = peaks[m1]['sh']
+    for m2 in peaks:
+      if not 'sh' in peaks[m2]: continue
+      t2 = peaks[m2]['t']
+      s2 = peaks[m2]['sh']
+
+      if t2 <= t1: continue
+      dsh = s2-s1
+      print("%-30s %02d.%02d  %.3f %.3f %.4f  %e"\
+         %(fpref, t1,t2, grad, exc, ttc, dsh), file=outs)
+
+
+  ###############################
+  ##  print file table (*.tab)
+  print(("%-30s %.7f %6.2f %6.2f %4.2f %6.4f %6.2f"+\
+     "   %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %f") %\
+    (fpref, t0, grad, quad, exc, ttc,
+     float(inf.get('didt', math.nan)),
+     float(inff.get('ref_t', math.nan)),
+     float(inff.get('larm_t', math.nan)),
+     float(inff.get('time_x0', math.nan)),
+     float(inff.get('time_x', math.nan)),
+     float(inff.get('time_l', math.nan)),
+     float(inff.get('time_h', math.nan)),
+     float(inff.get('time_y', math.nan)), sc) , file=outt)
 
   #########################################
 
