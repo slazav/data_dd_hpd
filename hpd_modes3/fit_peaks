@@ -27,6 +27,7 @@ xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
 # predefined peak scales for each type
 scales = [1., 1.75127657, 1.19312445, 0, 0.57616221, 0.4136422, 0.77501649]
 cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
+minlen = 0.05  # skip too short modes in scale/slope calculations
 
 ################################
 # Single argument: list file
@@ -260,10 +261,16 @@ for fpref in sorted(files):
     t1 = peaks[m1]['t']
     s1 = peaks[m1]['sl']
     e1 = peaks[m1]['sl_e']
+    xl = peaks[m1]['xl']
+    xr = peaks[m1]['xr']
+    if xr-xl<minlen: continue
     for m2 in peaks:
       t2 = peaks[m2]['t']
       s2 = peaks[m2]['sl']
       e2 = peaks[m2]['sl_e']
+      xl = peaks[m2]['xl']
+      xr = peaks[m2]['xr']
+      if xr-xl<minlen: continue
 
       if t2 <= t1: continue
       sc   = s2/s1
@@ -287,6 +294,11 @@ for fpref in sorted(files):
     s = peaks[m1]['sl']
     e = peaks[m1]['sl_e']
     k = 0
+
+    xl = peaks[m1]['xl']
+    xr = peaks[m1]['xr']
+    if xr-xl<minlen: continue
+
     if t<len(scales): k = scales[t]
     if k>0:
       w = (s/e)**2
