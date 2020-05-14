@@ -1,0 +1,90 @@
+#!/usr/bin/python3
+# Read *.dif file, fit scales for each mode
+
+import numpy
+from numpy import linalg as la
+import math
+import matplotlib.pyplot as plt
+import scipy.optimize
+import argparse
+
+################################
+# Single argument: dif file
+
+parser = argparse.ArgumentParser()
+parser.add_argument('diffile')
+
+args = parser.parse_args()
+#########################################
+
+types = (0,1,2,3,4,5,6)
+
+#########################################
+
+# load data
+rr, g,e, ttc, sc, sce = numpy.loadtxt(args.diffile, usecols=(1,2,3,4,5,6), unpack=True)
+
+# unpack <rr> = <r1>.<r2> values
+# be careful with rounding errors!
+r1 = numpy.floor(rr).astype(int)
+r2 = numpy.rint(rr*100).astype(int) % 100
+
+# function for minimization
+def minfunc(scales, types, r1, r2, sc, sce):
+  # scales is shorter then types by 1
+  # add first element, 1
+  scales = numpy.append(1, scales)
+  s = 0
+  n = 0
+  for t1 in types:
+    for t2 in types:
+      if t1>=t2: continue
+      ii = numpy.logical_and(r1==t1, r2==t2)
+      if not numpy.any(ii): continue
+      t1i = types.index(t1)
+      t2i = types.index(t2)
+
+      w = sc[ii]/sce[ii] # weight
+      d = scales[t2i]/scales[t1i] - sc[ii] # difference
+      s += numpy.sum((w*d)**2)
+      n += numpy.sum(w**2)
+  return numpy.sqrt(s/n)
+
+
+# initial guess
+scales = numpy.ones(len(types)-1)
+
+# do minimization
+res = scipy.optimize.minimize(minfunc, scales, (types,r1,r2,sc,sce),
+   options={'disp': False, 'maxiter': 10000})
+scales = numpy.array(res.x)
+
+
+#########################################
+## plot
+
+scales = numpy.append(1, scales)
+print('types: ', types)
+print('scales: ', scales)
+i = 0
+t1 = 0
+for t2 in types:
+  if t1>=t2: continue
+  ii = numpy.logical_and(r1==t1, r2==t2)
+  if not numpy.any(ii): continue
+  #x = numpy.arange(sc[ii].size)
+  x = ttc[ii]
+  plt.errorbar(x, sc[ii], sce[ii], fmt='C%d.' % (i%10))
+
+  t1i = types.index(t1)
+  t2i = types.index(t2)
+  xx = numpy.array((numpy.min(x),numpy.max(x)))
+  yy = numpy.array([1,1])*scales[t2i]/scales[t1i]
+  plt.plot(xx, yy, 'C%d-' % (i%10), label='%d/%d' %(t2,t1))
+  i+=1
+
+plt.legend()
+plt.title(args.diffile)
+plt.xlabel('T/Tc')
+plt.ylabel('slope ratio')
+plt.savefig(args.diffile + '.png')
