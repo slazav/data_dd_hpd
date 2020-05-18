@@ -74,16 +74,33 @@ function ret=fit_temp_file(tfile, kfile, order)
   %                 = tau dT_he/dt -- for any
   % dT_he = dt/tau (K*T_ns - T_he)
   K = 1.075577;
-  tau = 1538.860678;
+  tau0 = 1538.860678;
+  press = 25.7;
 
+  % for superfluid He:
+  %  tau  =  tau0 * C_B(T)/C_N(T)
+  % assuming that Rk have same 1/T temperature dependence
+
+  vn = vn*K;
   for i=1:length(vn)
     if (i<2)
       vh(1) = K*vn(1);
     else
       i1 = ii(j)-1; i2 = ii(j);
       dt = (tns_t(i) - tns_t(i-1)) * 3600;
-      dv = dt/tau * (K*vn(i-1) - vh(i-1));
-      vh(i) = vh(i-1) + dv;
+
+      tau = tau0;
+      if vh(i-1)*1e3 < he3_tc(press)
+        cn = he3_c_n(vh(i-1), press);
+        cb = he3_c_b(vh(i-1)*1e3/he3_tc(press), press);
+        tau = tau*cb/cn;
+      end
+      fprintf("%f %f %f\n", vh(i-1), tau, he3_tc(press))
+
+      # see Readme
+      a = (vn(i)-vn(i-1))/dt;
+      vh(i) = (vh(i-1) - vn(i-1) + a*tau) * exp(-dt/tau) + vn(i-1) + a*(dt-tau);
+
     end
   end
 

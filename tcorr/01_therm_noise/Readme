@@ -6,3 +6,26 @@ fit_temp.m -- matlab script reads thermometry file and file with kinks,
   makes piecewise fit.
 
 put_data -- put smoothed data to the database
+
+
+
+---------------------------------------------
+
+If temperature of the nuclear stage is
+$Tns = Tns0 + a t$ , temperature of He3 is $The$,
+and thermalization time is $tau$ then
+
+dThe/dt = - (The - Tns)/tau
+
+Looking for the solution in the form
+The = A*exp(-t/tau) + a*t + C:
+
+-A exp(-t/tau) + a*tau = - (A exp(-t/tau) + a t + C - Tns0 - a t)
+
+C = Tns0 - a*tau
+A = The0-Tns0 + a*tau
+
+The = (The0 - Tns0 + a*tau) * exp(-t/tau) + Tns0 + a*(t-tau)
+
+
+
