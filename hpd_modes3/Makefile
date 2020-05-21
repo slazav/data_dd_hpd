@@ -15,15 +15,20 @@ LISTS=\
   20180701c_exc\
   20180701d_exc\
   20180701g_temp\
+  good_h\
+  good_l\
 
 %.dif %.mod %.tab: %.lst fit_peaks
 	./fit_peaks $<
 
-all: $(patsubst %,%.mod,${LISTS}) $(patsubst %,%.tab,${LISTS}) $(patsubst %,%.dif,${LISTS})
-	cat 2018*.dif > all.dif
+all: $(patsubst %,%.mod,${LISTS}) $(patsubst %,%.tab,${LISTS}) $(patsubst %,%.dif,${LISTS}) slopes
+
+slopes: fit_sl_diff good_h.mod
+	./fit_sl_diff good_h.dif
 
 clean:
 	rm -rf *.dat
-	rm -f *.tab *.mod *.dif
+	rm -f *.tab *.mod *.dif *.dsh
+
 
 
