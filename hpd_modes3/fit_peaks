@@ -241,10 +241,7 @@ for fpref in sorted(files):
     plt.plot(xc,k*yc, 'ko', markersize=8)
     plt.plot(xc,k*yc, 'ro', markersize=6)
     print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f" %\
-      (fpref, t, n,
-      float(inf.get('grad', math.nan))*1e3,
-      float(inf.get('exc', math.nan)),
-      float(inf.get('temp_corr', math.nan))/tc,
+      (fpref, t, n, grad, exc, ttc,
       xl,xr,xc,yc, sl, sl_e), file=outm)
 
     peaks[n]['xl'] = xl
