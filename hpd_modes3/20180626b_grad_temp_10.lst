@@ -1,0 +1,7 @@
+xlim 1 2
+ylim 0 1.2
+20180626b_grad_temp/sig_1530020086_1.2_-10_n l  type=10
+20180626b_grad_temp/sig_1530020086_1.2_-10_n ls type=11 qual=3
+20180626b_grad_temp/sig_1530020456_1.2_-10_n l  type=10
+20180626b_grad_temp/sig_1530020456_1.2_-10_n ls type=11
+20180626b_grad_temp/sig_1530020825_1.2_-10_n l  type=11 xmax=0.932
