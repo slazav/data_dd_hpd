@@ -1,0 +1,41 @@
+#!/usr/bin/gnuplot
+
+set nokey
+
+k0 = 4.490535; x0=0
+k1 = 3.975213; x1=-0.014
+k2 = 3.715998; x2=-0.002
+k3 = 3.412235; x3=-0.005
+k4 = 4.221717; x4=-0.106
+
+d = "20180701g_temp_1.2_8.dat/"
+
+set key bottom
+
+plot [][0:]\
+ d."sig_1530470340_1.2_-8_n_04.dat" u ($1-x0):($2/k0) w p pt 6 lc 0 t '0.365',\
+ d."sig_1530470940_1.2_-8_n_04.dat" u ($1-x1):($2/k1) w p pt 6 lc 1 t '0.392',\
+ d."sig_1530470940_1.2_-8_n_06.dat" u ($1-x1):($2/k1) w p pt 6 lc 1 notitle,\
+ d."sig_1530470940_1.2_-8_n_08.dat" u ($1-x1):($2/k1) w p pt 6 lc 1 notitle,\
+\
+ d."sig_1530471538_1.2_-8_n_00.dat" u ($1-x2):($2/k2) w p pt 6 lc 2 t '0.418',\
+ d."sig_1530471538_1.2_-8_n_01.dat" u ($1-x2):($2/k2) w p pt 6 lc 2 notitle,\
+ d."sig_1530471538_1.2_-8_n_02.dat" u ($1-x2):($2/k2) w p pt 6 lc 2 notitle,\
+ d."sig_1530471538_1.2_-8_n_04.dat" u ($1-x2):($2/k2) w p pt 6 lc 2 notitle,\
+\
+ d."sig_1530472137_1.2_-8_n_00.dat" u ($1-x3):($2/k3) w p pt 6 lc 3 t '0.445',\
+ d."sig_1530472137_1.2_-8_n_01.dat" u ($1-x3):($2/k3) w p pt 6 lc 3 notitle,\
+ d."sig_1530472137_1.2_-8_n_02.dat" u ($1-x3):($2/k3) w p pt 6 lc 3 notitle,\
+ d."sig_1530472137_1.2_-8_n_04.dat" u ($1-x3):($2/k3) w p pt 6 lc 3 notitle,\
+ d."sig_1530472137_1.2_-8_n_05.dat" u ($1-x3):($2/k3) w p pt 6 lc 3 notitle,\
+\
+ d."sig_1530472745_1.2_-8_n_04.dat" u ($1-x4):($2/k4) w p pt 6 lc 4 t '0.472',\
+ d."sig_1530472745_1.2_-8_n_05.dat" u ($1-x4):($2/k4) w p pt 6 lc 4 notitle,\
+
+pause -1
+
+set terminal fig size 10,10
+set output "tmp1.fig"
+replot
+
+

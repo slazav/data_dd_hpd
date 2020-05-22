@@ -1,0 +1,69 @@
+#!/usr/bin/gnuplot
+
+#set nokey
+
+exc=1.2
+grad=-8
+type=04.05
+
+fn1='20180612a_test_amp.tab'
+fn2='20180612b_test_grad.tab'
+fn3a='20180612d_temp_grad_0.8.tab'
+fn3b='20180612d_temp_grad_1.0.tab'
+fn3c='20180612d_temp_grad_1.4.tab'
+fn4a='20180615b_temp_exc_0.8.tab'
+fn4b='20180615b_temp_exc_1.0.tab'
+fn4c='20180615b_temp_exc_1.2.tab'
+fn5='20180622a_grad.tab'
+fn6a='20180626b_grad_temp_6.tab'
+fn6b='20180626b_grad_temp_7.tab'
+fn6c='20180626b_grad_temp_8.tab'
+fn6d='20180626b_grad_temp_10.tab'
+fn7='20180627a_grad.tab'
+fn8='20180627b_temp.tab'
+fn9='20180701a_grad.tab'
+fnA='20180701b_exc.tab'
+fnB='20180701c_exc.tab'
+fnC='20180701d_exc.tab'
+fnDa='20180701g_temp_0.8_8.tab'
+fnDb='20180701g_temp_0.8_10.tab'
+fnDc='20180701g_temp_1.2_8.tab'
+fnDd='20180701g_temp_1.2_10.tab'
+fnDe='20180701g_temp_1.4_8.tab'
+fnDf='20180701g_temp_1.4_10.tab'
+
+fnG='good_h.tab'
+fnX='all.tab'
+
+f(x) = a*x + b
+fit f(x) fn3b u 6:($15>0?$15:1/0) via a,b
+
+
+plot [][0:]\
+ fn3b u 6:15 w p pt 7 title "3 1.0",\
+ fn4a u 6:15 w p pt 6 title "4 0.8",\
+ fn4b u 6:15 w p pt 6 title "4 1.0",\
+ fn4c u 6:15 w p pt 6 title "4 1.2",\
+ "nu_b.txt" u ($1):(($3/200000)**4) w l,\
+ f(x)
+
+print a,b
+
+
+pause -1
+
+ fn3b u 6:15 w p pt 7 title "3 1.0",\
+ fn4a u 6:15 w p pt 6 title "4 1.0",\
+ fn4b u 6:15 w p pt 6 title "4 1.0",\
+ fn4c u 6:15 w p pt 6 title "4 1.2",\
+ fn6a u 6:15 w p pt 6 title "6a",\
+ fn6b u 6:15 w p pt 6 title "6b",\
+ fn6c u 6:15 w p pt 6 title "6c",\
+ fn6d u 6:15 w p pt 6 title "6d",\
+ fn8 u 6:15 w p pt 6 title "8 1.0",\
+ fnDa u 6:15 w p pt 6 title "Da",\
+ fnDb u 6:15 w p pt 6 title "Db",\
+ fnDc u 6:15 w p pt 6 title "Dc",\
+ fnDd u 6:15 w p pt 6 title "Dd",\
+ fnDe u 6:15 w p pt 6 title "De",\
+ fnDf u 6:15 w p pt 6 title "Df",\
