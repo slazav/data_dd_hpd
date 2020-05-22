@@ -25,7 +25,7 @@ ires = 5e-6                      # main source of error: power supply resolution
 xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
 
 # predefined peak scales for each type
-scales = [1., 1.75127657, 1.19312445, 0, 0.57616221, 0.4136422, 0.77501649]
+scales = [1., 1.69809267, 1.2020349, 0,  0.57674808, 0.41501188, 0.77720639]
 cols=('C0','C1','C2','C3','C4','C5','C6','C7','C8','C9','r','g','b','c','m','y','k')
 minlen = 0.05  # skip too short modes in scale/slope calculations
 
