@@ -22,7 +22,7 @@ tc = 2.372743e-3                 # Tc at 25.7 bar [K]
 dfdi=405.886*20378/(2*3.1415926) # convert NMR current to frequency [Hz/A]
 nmr_i0 = 0.86675                 # reference NMR current [A]
 ires = 5e-6                      # main source of error: power supply resolution, 5uA
-xres = 2 * dfdi*ires*1e-3            # x measurement error, kHz
+xres = 2 * dfdi*ires*1e-3        # x measurement error, kHz
 
 # predefined peak scales for each type
 scales = [1., 1.69809267, 1.2020349, 0,  0.57674808, 0.41501188, 0.77720639]
@@ -51,8 +51,8 @@ outs = open(pref + '.dsh', 'w')
 os.makedirs(pref + '.dat', exist_ok=True) # for png files
 
 print("# file - time - grad - quad - exc - ttc - didt" +
-       " - ref_t - larm_t - t_x0 - t_x - t_l - t_h - t_y", file=outt)
-print("# file - type - name - grad - exc - ttc - xl - xr - xc - yc - sl - sl_e", file=outm)
+       " - ref_t - larm_t - t_x0 - t_x - t_l - t_h - t_y - sc", file=outt)
+print("# file - type - name - grad - exc - ttc - xl - xr - xc - yc - sl - sl_e - sh2 - sl2", file=outm)
 
 ############################################
 def parse_pars(pars, allowed, defaults = {}):
@@ -133,6 +133,9 @@ for fpref in sorted(files):
   exc  = float(inf.get('exc',  math.nan))
   ttc  = float(inf.get('temp_corr', math.nan))/tc
 
+  # fit central part of the nmr sweep
+  ii = numpy.logical_and(nmr_t-nmr_t[0] > 5, nmr_t[-1]-nmr_t > 5)
+  pnmr = numpy.polyfit(nmr_t[ii]-t0, nmr_i[ii], 1)
 
   ###############################
   #### Merge peaks with same name, merge harmonics,
@@ -147,7 +150,8 @@ for fpref in sorted(files):
     Q = numpy.array(i['Q'], dtype=float)
 
     # interpolate NMR current to peak data
-    I = numpy.interp(T, nmr_t-t0, nmr_i, math.nan, math.nan)
+    #I = numpy.interp(T, nmr_t-t0, nmr_i, math.nan, math.nan)
+    I = numpy.polyval(pnmr, T)
 
     # merge harmonics
     name = i['name']
@@ -240,9 +244,6 @@ for fpref in sorted(files):
     plt.text(xr+0.002, k*numpy.polyval(p,xr), "%d(%s) %.2f %.2f"%(t,n,sl,sl_e1))
     plt.plot(xc,k*yc, 'ko', markersize=8)
     plt.plot(xc,k*yc, 'ro', markersize=6)
-    print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f" %\
-      (fpref, t, n, grad, exc, ttc,
-      xl,xr,xc,yc, sl, sl_e), file=outm)
 
     peaks[n]['xl'] = xl
     peaks[n]['xr'] = xr
@@ -312,25 +313,35 @@ for fpref in sorted(files):
     xr = peaks[m1]['xr']
     xc = peaks[m1]['xc']
     yc = peaks[m1]['yc']
+    sl = peaks[m1]['sl']
+    sl_e = peaks[m1]['sl_e']
     k  = peaks[m1]['plot_sc']
     xx=numpy.array((xl,xr))
-    sl = 0
-    if t<len(scales): sl = sc*scales[t]
-    if sl==0: continue
-    peaks[m1]['sh'] = xc - yc/sl
+    sl2 = 0
+    sh2 = 0
+    if t<len(scales): sl2 = sc*scales[t]
+    if sl2!=0: sh2 = xc - yc/sl2
+    peaks[m1]['sh2'] = sh2
 
-    plt.plot(xx, sl*(xx-xc) + yc, cols[t%len(cols)] + '-', linewidth=3)
+    print("%s %2d %2s  %.2f %.3f %.3f  %f %f %f %f  %f %f  %f %f" %\
+      (fpref, t, n, grad, exc, ttc,
+      xl,xr,xc,yc, sl, sl_e,  sh2, sl2), file=outm)
+
+    if sl2!=0:
+      plt.plot(xx, sl2*(xx-sh2), cols[t%len(cols)] + '-', linewidth=3)
+
+
 
   #########################################
   ## for each pair of modes calculate shift difference
   for m1 in peaks:
-    if not 'sh' in peaks[m1]: continue
+    if not 'sh2' in peaks[m1]: continue
     t1 = peaks[m1]['t']
-    s1 = peaks[m1]['sh']
+    s1 = peaks[m1]['sh2']
     for m2 in peaks:
-      if not 'sh' in peaks[m2]: continue
+      if not 'sh2' in peaks[m2]: continue
       t2 = peaks[m2]['t']
-      s2 = peaks[m2]['sh']
+      s2 = peaks[m2]['sh2']
 
       if t2 <= t1: continue
       dsh = s2-s1
