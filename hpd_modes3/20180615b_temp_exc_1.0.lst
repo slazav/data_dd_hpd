@@ -45,11 +45,11 @@ ylim 0 1.4
 20180615b_temp_exc/sig_1529057254_1.0_-8 h   type=6
 20180615b_temp_exc/sig_1529057643_1.0_-8 h   type=6
 20180615b_temp_exc/sig_1529058029_1.0_-8 h   type=6
-20180615b_temp_exc/sig_1529058029_1.0_-8 l   type=10 xmax=-0.385
+20180615b_temp_exc/sig_1529058029_1.0_-8 l   type=12 xmax=-0.385
 20180615b_temp_exc/sig_1529058415_1.0_-8 h   type=6
-20180615b_temp_exc/sig_1529058415_1.0_-8 l   type=10 xmax=-0.39
+20180615b_temp_exc/sig_1529058415_1.0_-8 l   type=12 xmax=-0.39
 20180615b_temp_exc/sig_1529058801_1.0_-8 h   type=6
-20180615b_temp_exc/sig_1529058801_1.0_-8 l   type=10
+20180615b_temp_exc/sig_1529058801_1.0_-8 l   type=12
 20180615b_temp_exc/sig_1529059181_1.0_-8 l   type=10
 20180615b_temp_exc/sig_1529059181_1.0_-8 ls  type=11
 20180615b_temp_exc/sig_1529059566_1.0_-8 l   type=10

@@ -2,14 +2,14 @@ xlim -0.1 0.6
 ylim 0 1.2
 
 20180612d_temp_grad/sig_1528808074_1.0_-5 ht  type=4
-20180612d_temp_grad/sig_1528808074_1.0_-5 l   type=10
+20180612d_temp_grad/sig_1528808074_1.0_-5 l   type=12
 20180612d_temp_grad/sig_1528808182_1.0_-6 ht  type=4
-20180612d_temp_grad/sig_1528808182_1.0_-6 l   type=10
-20180612d_temp_grad/sig_1528808290_1.0_-7 l   type=10
+20180612d_temp_grad/sig_1528808182_1.0_-6 l   type=12
+20180612d_temp_grad/sig_1528808290_1.0_-7 l   type=12
 20180612d_temp_grad/sig_1528808398_1.0_-8 ht  type=4
-20180612d_temp_grad/sig_1528808398_1.0_-8 l   type=10
+20180612d_temp_grad/sig_1528808398_1.0_-8 l   type=12
 20180612d_temp_grad/sig_1528808507_1.0_-9 ht  type=4
-20180612d_temp_grad/sig_1528808507_1.0_-9 l   type=10
+20180612d_temp_grad/sig_1528808507_1.0_-9 l   type=12
 
 20180612d_temp_grad/sig_1528809779_1.0_-3 l   type=10
 20180612d_temp_grad/sig_1528809887_1.0_-4 l   type=10
@@ -91,7 +91,7 @@ ylim 0 1.2
 20180612d_temp_grad/sig_1528814536_1.0_-7 ht  type=0
 20180612d_temp_grad/sig_1528814644_1.0_-8 h   type=4
 20180612d_temp_grad/sig_1528814644_1.0_-8 hh  type=2
-20180612d_temp_grad/sig_1528814644_1.0_-8 hs  type=5
+20180612d_temp_grad/sig_1528814644_1.0_-8 hs  type=6
 20180612d_temp_grad/sig_1528814644_1.0_-8 ht  type=0
 20180612d_temp_grad/sig_1528814644_1.0_-8 hx  type=1
 20180612d_temp_grad/sig_1528814752_1.0_-9 h   type=4

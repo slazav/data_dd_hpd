@@ -10,7 +10,7 @@ ylim 0 2.4
 20180701g_temp/sig_1530463288_1.2_-10_n ls type=11
 20180701g_temp/sig_1530463887_1.2_-10_n l  type=10 xmax=1.1
 20180701g_temp/sig_1530463887_1.2_-10_n ls type=11
-20180701g_temp/sig_1530464486_1.2_-10_n l  type=11 xmax=1.1
+20180701g_temp/sig_1530464486_1.2_-10_n l  type=10 xmax=1.1
 20180701g_temp/sig_1530464486_1.2_-10_n ls type=11
 20180701g_temp/sig_1530465086_1.2_-10_n l  type=10 xmax=1.1
 20180701g_temp/sig_1530465086_1.2_-10_n ls type=11

@@ -1,7 +1,7 @@
 xlim 0.4 1.2
 ylim 0 2.1
 
-20180701a_grad/sig_1530439521_1.0_-8_n l   type=12
+20180701a_grad/sig_1530439521_1.0_-8_n l   type=10
 20180701a_grad/sig_1530439521_1.0_-8_n ls  type=11
 20180701a_grad/sig_1530439760_1.0_0_n l   type=10 xmax=0.65
 20180701a_grad/sig_1530439898_1.0_-1_n l   type=10
