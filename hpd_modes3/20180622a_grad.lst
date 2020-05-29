@@ -1,25 +1,25 @@
-xlim 0 1
+xlim -0.3 1
 ylim 0 2.0
 
 20180622a_grad/sig_1529669450_1.0_-4 h   type=0
-20180622a_grad/sig_1529669588_1.0_-6 h   type=0
+20180622a_grad/sig_1529669588_1.0_-6 h   type=0 ymax=0.80
 20180622a_grad/sig_1529669727_1.0_-8 h   type=0
 
 20180622a_grad/sig_1529673242_1.0_-2 l   type=10
 20180622a_grad/sig_1529673383_1.0_-4 l   type=10
 20180622a_grad/sig_1529673522_1.0_-6 h   type=0
-20180622a_grad/sig_1529673522_1.0_-6 l   type=10
+20180622a_grad/sig_1529673522_1.0_-6 l   type=10 xmax=0.41
 20180622a_grad/sig_1529673663_1.0_-8 h   type=0
-20180622a_grad/sig_1529673663_1.0_-8 l   type=10
+20180622a_grad/sig_1529673663_1.0_-8 l   type=10 xmax=0.47
 20180622a_grad/sig_1529673805_1.0_-10 h  type=0
-20180622a_grad/sig_1529673805_1.0_-10 l  type=10
-20180622a_grad/sig_1529673805_1.0_-10 ls type=11
-20180622a_grad/sig_1529673945_1.0_-12 l  type=10
-20180622a_grad/sig_1529673945_1.0_-12 ls type=11 xmax=0.63
+20180622a_grad/sig_1529673805_1.0_-10 l  type=11 xmax=0.55
+20180622a_grad/sig_1529673805_1.0_-10 ls type=10
+20180622a_grad/sig_1529673945_1.0_-12 l  type=11
+20180622a_grad/sig_1529673945_1.0_-12 ls type=10 xmax=0.63
 
-20180622a_grad/sig_1529674639_1.0_-16 l  type=11
+20180622a_grad/sig_1529674639_1.0_-16 l  type=11 qual=2.8
 20180622a_grad/sig_1529674639_1.0_-16 ls type=10
-20180622a_grad/sig_1529674779_1.0_-14 l  type=11
+20180622a_grad/sig_1529674779_1.0_-14 l  type=11 qual=2.8 xmax=0.5
 20180622a_grad/sig_1529674779_1.0_-14 ls type=10
 20180622a_grad/sig_1529674920_1.0_-12 l  type=11
 20180622a_grad/sig_1529674920_1.0_-12 ls type=10
@@ -28,11 +28,11 @@ ylim 0 2.0
 20180622a_grad/sig_1529675200_1.0_-8 l   type=10
 20180622a_grad/sig_1529675200_1.0_-8 ls  type=11
 20180622a_grad/sig_1529675338_1.0_-6 l   type=10
-20180622a_grad/sig_1529675478_1.0_-4 l   type=10
-20180622a_grad/sig_1529675618_1.0_-2 l   type=10
+20180622a_grad/sig_1529675478_1.0_-4 l   type=10 qual=30
+20180622a_grad/sig_1529675618_1.0_-2 l   type=10 qual=30
 20180622a_grad/sig_1529675758_1.0_0 l   type=10
 20180622a_grad/sig_1529675988_1.0_0 l   type=10
 20180622a_grad/sig_1529676127_1.0_2 l   type=10
 
-20180622a_grad/sig_1529676977_1.0_-14 l  type=11
-20180622a_grad/sig_1529676977_1.0_-14 ls type=10
+20180622a_grad/sig_1529676977_1.0_-14 l  type=11 qual=3 xmax=0.5
+20180622a_grad/sig_1529676977_1.0_-14 ls type=10 qual=3
