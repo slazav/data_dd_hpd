@@ -27,16 +27,16 @@ LISTS=\
   20180701g_temp_1.2_8\
   20180701g_temp_1.4_10\
   20180701g_temp_1.4_8\
-  good_h\
   good_l\
 
 %.dif %.mod %.tab: %.lst fit_peaks
 	./fit_peaks $<
 
 all: $(patsubst %,%.mod,${LISTS}) $(patsubst %,%.tab,${LISTS}) $(patsubst %,%.dif,${LISTS}) slopes
+	cat 2018*.dif > all.dif
 
-slopes: fit_sl_diff good_h.mod
-	./fit_sl_diff good_h.dif
+slopes: fit_sl_diff all
+	./fit_sl_diff all.dif
 
 clean:
 	rm -rf *.dat
