@@ -233,14 +233,17 @@ for fpref in sorted(files):
     # estimate error from point scattering
     sl_e2 = numpy.var(y - numpy.polyval(p,x))**0.5/(xr-xl)
     sl_e = numpy.hypot(sl_e1, sl_e2)
+    x0  = xc-yc/sl
+    x0e = sl_e * yc/sl**2
 
     # plotting
-    xx = numpy.linspace(numpy.min(x),numpy.max(x))
+    xx = numpy.linspace(x0,numpy.max(x))
     plt.plot(x,y*k, 'k.', markersize=1)
     plt.plot(xx, k*numpy.polyval(p,xx), 'k-', linewidth=0.5)
 
     plt.plot(xx, k*((sl-sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
     plt.plot(xx, k*((sl+sl_e)*(xx-xc) + yc), 'k--', linewidth=0.5)
+    plt.plot(numpy.array((x0-x0e,x0+x0e)), numpy.array((0,0)), 'k', linewidth=3)
 
     plt.text(xr+0.002, k*numpy.polyval(p,xr), "%d(%s) %.2f %.2f"%(t,n,sl,sl_e1))
     plt.plot(xc,k*yc, 'ko', markersize=8)
@@ -250,8 +253,10 @@ for fpref in sorted(files):
     peaks[n]['xr'] = xr
     peaks[n]['xc'] = xc
     peaks[n]['yc'] = yc
-    peaks[n]['sl'] = sl
+    peaks[n]['sl']   = sl
     peaks[n]['sl_e'] = sl_e
+    peaks[n]['x0']   = x0
+    peaks[n]['x0e'] = x0e
 
   #########################################
   ## for each pair of modes calculate slope ratio
@@ -316,6 +321,8 @@ for fpref in sorted(files):
     yc = peaks[m1]['yc']
     sl = peaks[m1]['sl']
     sl_e = peaks[m1]['sl_e']
+    x0 = peaks[m1]['x0']
+    x0e = peaks[m1]['x0e']
     k  = peaks[m1]['plot_sc']
     xx=numpy.array((xl,xr))
     sl2 = 0
